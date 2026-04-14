@@ -11,8 +11,8 @@ Usage:
     python train_model.py --show-importances
 """
 
-import sys
 import argparse
+import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
@@ -23,11 +23,9 @@ from ml_model.trainer import ModelTrainer
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Pre-train the repository classifier")
-    parser.add_argument("--verbose",          action="store_true")
-    parser.add_argument("--show-importances", action="store_true",
-                        help="Print top feature importances after training")
-    parser.add_argument("--n-estimators",     type=int, default=200,
-                        help="Number of RF trees (default: 200)")
+    parser.add_argument("--verbose", action="store_true")
+    parser.add_argument("--show-importances", action="store_true", help="Print top feature importances after training")
+    parser.add_argument("--n-estimators", type=int, default=200, help="Number of RF trees (default: 200)")
     args = parser.parse_args()
 
     cfg = Config(verbose=True, model_n_estimators=args.n_estimators)

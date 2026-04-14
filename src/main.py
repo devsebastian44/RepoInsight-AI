@@ -15,21 +15,21 @@ Examples:
     python main.py https://github.com/user/repo --llm --llm-provider openai
 """
 
-import sys
 import argparse
 import json
+import sys
 import time
 from pathlib import Path
 
-from config import Config
-from data_collection.github_client import GitHubClient
-from data_collection.code_extractor import CodeExtractor
-from analysis.feature_engineering import FeatureEngineer
 from analysis.code_analyzer import CodeAnalyzer
+from analysis.feature_engineering import FeatureEngineer
 from analysis.pattern_detector import PatternDetector
+from config import Config
+from data_collection.code_extractor import CodeExtractor
+from data_collection.github_client import GitHubClient
 from ml_model.classifier import RepositoryClassifier
-from reporting.report_builder import ReportBuilder
 from reporting.formatter import ReportFormatter
+from reporting.report_builder import ReportBuilder
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -254,6 +254,7 @@ def main() -> None:
         print(f"\n\n❌ Analysis failed: {exc}")
         if args.verbose:
             import traceback
+
             traceback.print_exc()
         sys.exit(1)
 

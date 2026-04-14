@@ -10,13 +10,12 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Optional
 
 from config import Config
 from data_collection.github_client import GitHubClient, RepositoryData
 
-
 # ── Data Model ────────────────────────────────────────────────────────────────
+
 
 @dataclass
 class SourceFile:
@@ -40,6 +39,7 @@ class SourceFile:
         tokens      : Rough token count (words)
         depth       : Directory nesting depth
     """
+
     path: str
     extension: str
     content: str
@@ -59,6 +59,7 @@ class SourceFile:
 
 # ── Extractor ────────────────────────────────────────────────────────────────
 
+
 class CodeExtractor:
     """
     Downloads source files from a repository and produces SourceFile objects.
@@ -72,14 +73,16 @@ class CodeExtractor:
 
     # Regex patterns for structural extraction (language-agnostic heuristics)
     _PATTERNS = {
-        "functions_py":  re.compile(r"^\s*(?:async\s+)?def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", re.M),
-        "functions_js":  re.compile(r"(?:function\s+([A-Za-z_$][A-Za-z0-9_$]*)|(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(?:async\s+)?(?:function|\())", re.M),
+        "functions_py": re.compile(r"^\s*(?:async\s+)?def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", re.M),
+        "functions_js": re.compile(
+            r"(?:function\s+([A-Za-z_$][A-Za-z0-9_$]*)|(?:const|let|var)\s+([A-Za-z_$][A-Za-z0-9_$]*)\s*=\s*(?:async\s+)?(?:function|\())", re.M
+        ),
         "functions_java": re.compile(r"(?:public|private|protected|static|\s)+[\w<>\[\]]+\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(", re.M),
-        "classes_py":    re.compile(r"^\s*class\s+([A-Za-z_][A-Za-z0-9_]*)\s*[:(]", re.M),
-        "classes_java":  re.compile(r"\b(?:class|interface|enum)\s+([A-Za-z_][A-Za-z0-9_]*)", re.M),
-        "imports_py":    re.compile(r"^(?:import|from)\s+([^\s]+)", re.M),
-        "imports_js":    re.compile(r"^(?:import|require)\s*[\({]?\s*['\"]([^'\"]+)['\"]", re.M),
-        "imports_java":  re.compile(r"^import\s+([\w.]+);", re.M),
+        "classes_py": re.compile(r"^\s*class\s+([A-Za-z_][A-Za-z0-9_]*)\s*[:(]", re.M),
+        "classes_java": re.compile(r"\b(?:class|interface|enum)\s+([A-Za-z_][A-Za-z0-9_]*)", re.M),
+        "imports_py": re.compile(r"^(?:import|from)\s+([^\s]+)", re.M),
+        "imports_js": re.compile(r"^(?:import|require)\s*[\({]?\s*['\"]([^'\"]+)['\"]", re.M),
+        "imports_java": re.compile(r"^import\s+([\w.]+);", re.M),
     }
 
     def __init__(self, config: Config) -> None:
@@ -103,18 +106,16 @@ class CodeExtractor:
         max_size = cfg.max_file_size_kb * 1024
 
         # Filter and sort candidate files
-        candidates = [
-            entry for entry in repo_data.tree_entries
-            if self._get_ext(entry["path"]) in supported
-            and entry.get("size", 0) <= max_size
-        ]
+        candidates = [entry for entry in repo_data.tree_entries if self._get_ext(entry["path"]) in supported and entry.get("size", 0) <= max_size]
 
         # Prioritize dominant language files, then sort by path for consistency
         dominant_ext = self._dominant_extension(repo_data)
-        candidates.sort(key=lambda e: (
-            0 if self._get_ext(e["path"]) == dominant_ext else 1,
-            e["path"],
-        ))
+        candidates.sort(
+            key=lambda e: (
+                0 if self._get_ext(e["path"]) == dominant_ext else 1,
+                e["path"],
+            )
+        )
         candidates = candidates[: cfg.max_files]
 
         cfg.log(f"Downloading {len(candidates)} source files...")
@@ -137,10 +138,9 @@ class CodeExtractor:
     def _parse(self, path: str, ext: str, content: str) -> SourceFile:
         """Parse raw source text into a structured SourceFile."""
         raw_lines = content.splitlines()
-        all_lines = raw_lines                               # Keep blank for counts
         non_empty = [l for l in raw_lines if l.strip()]
 
-        blank_lines  = sum(1 for l in raw_lines if not l.strip())
+        blank_lines = sum(1 for l in raw_lines if not l.strip())
         comment_lines = self._count_comment_lines(raw_lines, ext)
         code_lines = max(0, len(raw_lines) - blank_lines - comment_lines)
 
@@ -203,7 +203,7 @@ class CodeExtractor:
         else:
             # Generic: look for word followed by "("
             names = re.findall(r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\(", content)
-        return list(dict.fromkeys(names))[:100]   # Deduplicate, cap at 100
+        return list(dict.fromkeys(names))[:100]  # Deduplicate, cap at 100
 
     def _extract_classes(self, content: str, ext: str) -> list[str]:
         """Extract class/interface names."""
@@ -234,9 +234,18 @@ class CodeExtractor:
     def _dominant_extension(repo_data: RepositoryData) -> str:
         """Return the file extension associated with the primary language."""
         lang_to_ext = {
-            "Python": ".py", "JavaScript": ".js", "TypeScript": ".ts",
-            "Java": ".java", "Go": ".go", "Ruby": ".rb",
-            "C++": ".cpp", "C": ".c", "C#": ".cs",
-            "PHP": ".php", "Rust": ".rs", "Kotlin": ".kt", "Swift": ".swift",
+            "Python": ".py",
+            "JavaScript": ".js",
+            "TypeScript": ".ts",
+            "Java": ".java",
+            "Go": ".go",
+            "Ruby": ".rb",
+            "C++": ".cpp",
+            "C": ".c",
+            "C#": ".cs",
+            "PHP": ".php",
+            "Rust": ".rs",
+            "Kotlin": ".kt",
+            "Swift": ".swift",
         }
         return lang_to_ext.get(repo_data.language or "", ".py")

@@ -10,23 +10,22 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Optional
-from datetime import datetime, timezone
 
 import requests
 
 from config import Config
 
-
 # ── Data Models ──────────────────────────────────────────────────────────────
+
 
 @dataclass
 class RepositoryData:
     """Structured representation of GitHub repository metadata."""
+
     owner: str
     name: str
     full_name: str
-    description: Optional[str]
+    description: str | None
     url: str
     stars: int
     forks: int
@@ -37,20 +36,20 @@ class RepositoryData:
     updated_at: str
     pushed_at: str
     size_kb: int
-    language: Optional[str]
-    languages: dict[str, int]         # {"Python": 12400, "Shell": 340}
+    language: str | None
+    languages: dict[str, int]  # {"Python": 12400, "Shell": 340}
     topics: list[str]
     has_wiki: bool
     has_issues: bool
     has_projects: bool
-    license_name: Optional[str]
+    license_name: str | None
     contributors_count: int
     commits_count: int
     branches_count: int
     releases_count: int
-    commit_history: list[dict]        # Last N commits (date, message, author)
-    tree_entries: list[dict]          # Flat tree of all paths
-    readme_content: Optional[str]
+    commit_history: list[dict]  # Last N commits (date, message, author)
+    tree_entries: list[dict]  # Flat tree of all paths
+    readme_content: str | None
     has_ci: bool
     has_tests: bool
     has_docker: bool
@@ -60,6 +59,7 @@ class RepositoryData:
 @dataclass
 class FileEntry:
     """A single file entry from the repo tree."""
+
     path: str
     sha: str
     size: int
@@ -70,6 +70,7 @@ class FileEntry:
 
 
 # ── Client ───────────────────────────────────────────────────────────────────
+
 
 class GitHubClient:
     """
@@ -82,19 +83,39 @@ class GitHubClient:
 
     # Heuristic path patterns
     _CI_PATHS = {
-        ".github/workflows", ".travis.yml", ".circleci",
-        "Jenkinsfile", "azure-pipelines.yml", ".gitlab-ci.yml",
-        "bitbucket-pipelines.yml", "Makefile",
+        ".github/workflows",
+        ".travis.yml",
+        ".circleci",
+        "Jenkinsfile",
+        "azure-pipelines.yml",
+        ".gitlab-ci.yml",
+        "bitbucket-pipelines.yml",
+        "Makefile",
     }
     _TEST_DIRS = {
-        "test", "tests", "spec", "specs", "__tests__",
-        "test_", "_test", ".test.", ".spec.",
+        "test",
+        "tests",
+        "spec",
+        "specs",
+        "__tests__",
+        "test_",
+        "_test",
+        ".test.",
+        ".spec.",
     }
     _DOCKER_FILES = {"Dockerfile", "docker-compose.yml", "docker-compose.yaml", ".dockerignore"}
     _REQUIREMENT_FILES = {
-        "requirements.txt", "requirements-dev.txt", "pyproject.toml",
-        "setup.py", "setup.cfg", "Pipfile", "package.json",
-        "go.mod", "pom.xml", "build.gradle", "Cargo.toml",
+        "requirements.txt",
+        "requirements-dev.txt",
+        "pyproject.toml",
+        "setup.py",
+        "setup.cfg",
+        "Pipfile",
+        "package.json",
+        "go.mod",
+        "pom.xml",
+        "build.gradle",
+        "Cargo.toml",
     }
 
     def __init__(self, config: Config) -> None:
@@ -126,9 +147,7 @@ class GitHubClient:
         contributors = self._get_count(f"/repos/{owner}/{repo}/contributors?per_page=1&anon=true")
 
         cfg.log("Fetching commits (last 100)...")
-        commits_raw = self._get_paginated(
-            f"/repos/{owner}/{repo}/commits", per_page=100, max_pages=1
-        )
+        commits_raw = self._get_paginated(f"/repos/{owner}/{repo}/commits", per_page=100, max_pages=1)
         commits_count = self._get_count(f"/repos/{owner}/{repo}/commits?per_page=1")
 
         cfg.log("Fetching branches count...")
@@ -158,10 +177,7 @@ class GitHubClient:
         # Heuristic flags from file tree
         tree_paths = {e.get("path", "") for e in tree}
         has_ci = any(ci in p for ci in self._CI_PATHS for p in tree_paths)
-        has_tests = any(
-            any(t in p.lower() for t in self._TEST_DIRS)
-            for p in tree_paths
-        )
+        has_tests = any(any(t in p.lower() for t in self._TEST_DIRS) for p in tree_paths)
         has_docker = any(d in tree_paths for d in self._DOCKER_FILES)
         has_requirements = any(r in tree_paths for r in self._REQUIREMENT_FILES)
 
@@ -203,7 +219,7 @@ class GitHubClient:
             has_requirements=has_requirements,
         )
 
-    def get_file_content(self, owner: str, repo: str, path: str) -> Optional[str]:
+    def get_file_content(self, owner: str, repo: str, path: str) -> str | None:
         """Download and decode a single file's content (UTF-8)."""
         import base64
 
@@ -239,7 +255,7 @@ class GitHubClient:
                 return None
             except requests.RequestException as exc:
                 self.config.log(f"Request error: {exc}")
-                time.sleep(2 ** attempt)
+                time.sleep(2**attempt)
         return None
 
     def _get_paginated(self, endpoint: str, per_page: int = 100, max_pages: int = 5) -> list:
@@ -268,6 +284,7 @@ class GitHubClient:
             link = resp.headers.get("Link", "")
             if 'rel="last"' in link:
                 import re
+
                 m = re.search(r'page=(\d+)>;\s*rel="last"', link)
                 if m:
                     return int(m.group(1))
@@ -281,13 +298,11 @@ class GitHubClient:
         data = self._get(f"/repos/{owner}/{repo}/git/trees/{branch}?recursive=1")
         if data and "tree" in data:
             return [
-                {"path": e["path"], "sha": e["sha"], "size": e.get("size", 0), "type": e["type"]}
-                for e in data["tree"]
-                if e.get("type") == "blob"
+                {"path": e["path"], "sha": e["sha"], "size": e.get("size", 0), "type": e["type"]} for e in data["tree"] if e.get("type") == "blob"
             ]
         return []
 
-    def _fetch_readme(self, owner: str, repo: str) -> Optional[str]:
+    def _fetch_readme(self, owner: str, repo: str) -> str | None:
         """Fetch README content (any variant)."""
         import base64
 

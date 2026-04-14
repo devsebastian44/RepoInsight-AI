@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -23,32 +22,45 @@ class Config:
     """
 
     # ── GitHub ────────────────────────────────────────────────────────────────
-    github_token: Optional[str] = field(default=None)
+    github_token: str | None = field(default=None)
     github_api_base: str = "https://api.github.com"
     max_files: int = 50
-    max_file_size_kb: int = 500          # Skip files larger than this
-    request_timeout: int = 15            # HTTP timeout in seconds
+    max_file_size_kb: int = 500  # Skip files larger than this
+    request_timeout: int = 15  # HTTP timeout in seconds
 
     # ── Analysis ─────────────────────────────────────────────────────────────
     supported_extensions: tuple = (
-        ".py", ".js", ".ts", ".java", ".go", ".rb",
-        ".cpp", ".c", ".cs", ".php", ".rs", ".kt", ".swift",
+        ".py",
+        ".js",
+        ".ts",
+        ".java",
+        ".go",
+        ".rb",
+        ".cpp",
+        ".c",
+        ".cs",
+        ".php",
+        ".rs",
+        ".kt",
+        ".swift",
     )
-    comment_markers: dict = field(default_factory=lambda: {
-        ".py":   ["#", '"""', "'''"],
-        ".js":   ["//", "/*"],
-        ".ts":   ["//", "/*"],
-        ".java": ["//", "/*"],
-        ".go":   ["//", "/*"],
-        ".rb":   ["#"],
-        ".cpp":  ["//", "/*"],
-        ".c":    ["//", "/*"],
-        ".cs":   ["//", "/*"],
-        ".php":  ["//", "#", "/*"],
-        ".rs":   ["//", "/*"],
-        ".kt":   ["//", "/*"],
-        ".swift": ["//", "/*"],
-    })
+    comment_markers: dict = field(
+        default_factory=lambda: {
+            ".py": ["#", '"""', "'''"],
+            ".js": ["//", "/*"],
+            ".ts": ["//", "/*"],
+            ".java": ["//", "/*"],
+            ".go": ["//", "/*"],
+            ".rb": ["#"],
+            ".cpp": ["//", "/*"],
+            ".c": ["//", "/*"],
+            ".cs": ["//", "/*"],
+            ".php": ["//", "#", "/*"],
+            ".rs": ["//", "/*"],
+            ".kt": ["//", "/*"],
+            ".swift": ["//", "/*"],
+        }
+    )
 
     # ── ML Model ──────────────────────────────────────────────────────────────
     model_random_state: int = 42
@@ -57,13 +69,13 @@ class Config:
     scaler_path: str = "assets/feature_scaler.pkl"
 
     # ── LLM ──────────────────────────────────────────────────────────────────
-    llm_provider: str = "mock"                     # openai | anthropic | mock
-    openai_api_key: Optional[str] = field(default=None)
-    anthropic_api_key: Optional[str] = field(default=None)
+    llm_provider: str = "mock"  # openai | anthropic | mock
+    openai_api_key: str | None = field(default=None)
+    anthropic_api_key: str | None = field(default=None)
     llm_model_openai: str = "gpt-4o"
     llm_model_anthropic: str = "claude-3-5-sonnet-20241022"
     llm_max_tokens: int = 2048
-    llm_sample_lines: int = 150            # Lines of code sent to LLM
+    llm_sample_lines: int = 150  # Lines of code sent to LLM
 
     # ── Reporting ─────────────────────────────────────────────────────────────
     report_version: str = "1.0.0"

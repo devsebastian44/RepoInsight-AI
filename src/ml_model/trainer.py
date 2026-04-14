@@ -13,19 +13,18 @@ Usage:
 
 from __future__ import annotations
 
-import os
 import pickle
 from pathlib import Path
 
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.preprocessing import StandardScaler
-from sklearn.model_selection import cross_val_score, StratifiedKFold
-from sklearn.pipeline import Pipeline
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import classification_report
+from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 from config import Config
-from ml_model.data_generator import SyntheticDataGenerator, LABEL_MAP
+from ml_model.data_generator import LABEL_MAP, SyntheticDataGenerator
 
 
 class ModelTrainer:
@@ -81,9 +80,7 @@ class ModelTrainer:
         """Load a previously trained pipeline from disk."""
         path = Path(self.config.model_path)
         if not path.exists():
-            raise FileNotFoundError(
-                f"Model not found at {path}. Run ModelTrainer.train_and_save() first."
-            )
+            raise FileNotFoundError(f"Model not found at {path}. Run ModelTrainer.train_and_save() first.")
         with open(path, "rb") as f:
             return pickle.load(f)
 
@@ -104,10 +101,12 @@ class ModelTrainer:
             random_state=self.config.model_random_state,
             n_jobs=-1,
         )
-        return Pipeline([
-            ("scaler", StandardScaler()),
-            ("clf",    clf),
-        ])
+        return Pipeline(
+            [
+                ("scaler", StandardScaler()),
+                ("clf", clf),
+            ]
+        )
 
     def _save(self, pipeline: Pipeline) -> None:
         path = Path(self.config.model_path)
@@ -118,15 +117,18 @@ class ModelTrainer:
 
     def feature_importances(self) -> dict[str, float]:
         """Return a dict of {feature_name: importance} for the trained RF."""
-        from analysis.feature_engineering import FeatureVector
         from dataclasses import fields as dc_fields
+
+        from analysis.feature_engineering import FeatureVector
 
         pipeline = self.load()
         rf: RandomForestClassifier = pipeline.named_steps["clf"]
         feature_names = [f.name for f in dc_fields(FeatureVector)]
         importances = rf.feature_importances_
-        return dict(sorted(
-            zip(feature_names, importances),
-            key=lambda x: x[1],
-            reverse=True,
-        ))
+        return dict(
+            sorted(
+                zip(feature_names, importances),
+                key=lambda x: x[1],
+                reverse=True,
+            )
+        )

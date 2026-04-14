@@ -16,28 +16,29 @@ import re
 from dataclasses import dataclass, field
 from typing import NamedTuple
 
+from analysis.code_analyzer import CodeMetrics
 from config import Config
 from data_collection.code_extractor import SourceFile
-from analysis.code_analyzer import CodeMetrics
-
 
 # ── Result Models ─────────────────────────────────────────────────────────────
 
+
 class Finding(NamedTuple):
-    category: str         # "pattern" | "practice" | "smell"
-    name: str             # Human-readable name
-    severity: str         # "info" | "warning" | "critical" (smells only)
-    confidence: str       # "high" | "medium" | "low"
-    files: list[str]      # Files where finding was observed
-    description: str      # One-line description
+    category: str  # "pattern" | "practice" | "smell"
+    name: str  # Human-readable name
+    severity: str  # "info" | "warning" | "critical" (smells only)
+    confidence: str  # "high" | "medium" | "low"
+    files: list[str]  # Files where finding was observed
+    description: str  # One-line description
 
 
 @dataclass
 class PatternReport:
     """All pattern-detection findings for a repository."""
-    design_patterns: list[Finding]  = field(default_factory=list)
-    best_practices:  list[Finding]  = field(default_factory=list)
-    code_smells:     list[Finding]  = field(default_factory=list)
+
+    design_patterns: list[Finding] = field(default_factory=list)
+    best_practices: list[Finding] = field(default_factory=list)
+    code_smells: list[Finding] = field(default_factory=list)
 
     @property
     def all_findings(self) -> list[Finding]:
@@ -55,6 +56,7 @@ class PatternReport:
 
 
 # ── Detector ──────────────────────────────────────────────────────────────────
+
 
 class PatternDetector:
     """
@@ -125,8 +127,7 @@ class PatternDetector:
         ),
         (
             "MVC / MVP / MVVM",
-            [r"class\s+\w+Controller\b", r"class\s+\w+View\b", r"class\s+\w+ViewModel\b",
-             r"class\s+\w+Model\b"],
+            [r"class\s+\w+Controller\b", r"class\s+\w+View\b", r"class\s+\w+ViewModel\b", r"class\s+\w+Model\b"],
             "medium",
             "Architectural pattern separating UI logic from business logic.",
         ),
@@ -193,7 +194,7 @@ class PatternDetector:
         ),
         (
             "Separation of Concerns",
-            None,   # Checked structurally, not by regex
+            None,  # Checked structurally, not by regex
             "Multiple modules/packages indicate SoC.",
         ),
         (
@@ -211,26 +212,16 @@ class PatternDetector:
     # ── Code Smells ────────────────────────────────────────────────────────────
     # (name, detector_method_name, severity, description)
     _SMELL_DEFINITIONS = [
-        ("God Class", "_detect_god_class", "critical",
-         "A class with too many responsibilities (>10 methods or >200 lines)."),
-        ("Long Method", "_detect_long_method", "warning",
-         "Functions exceeding 50 lines are hard to read and test."),
-        ("Deep Nesting", "_detect_deep_nesting", "warning",
-         "Code nested >4 levels deep — refactor with early returns or helpers."),
-        ("Magic Numbers", "_detect_magic_numbers", "warning",
-         "Raw numeric literals in logic — use named constants instead."),
-        ("Long Parameter List", "_detect_long_params", "warning",
-         "Functions with >5 parameters — consider a parameter object."),
-        ("Commented-Out Code", "_detect_dead_code_comments", "info",
-         "Blocks of commented-out source code should be deleted, not commented."),
-        ("print() Debugging", "_detect_print_debugging", "info",
-         "print() statements in production code — use a proper logger."),
-        ("TODO / FIXME", "_detect_todos", "info",
-         "Unresolved TODO/FIXME/HACK markers in source."),
-        ("Duplicate Code", "_detect_duplication_smell", "warning",
-         "Similar code blocks detected across files."),
-        ("Bare Except", "_detect_bare_except", "warning",
-         "Python bare `except:` catches all exceptions — use specific types."),
+        ("God Class", "_detect_god_class", "critical", "A class with too many responsibilities (>10 methods or >200 lines)."),
+        ("Long Method", "_detect_long_method", "warning", "Functions exceeding 50 lines are hard to read and test."),
+        ("Deep Nesting", "_detect_deep_nesting", "warning", "Code nested >4 levels deep — refactor with early returns or helpers."),
+        ("Magic Numbers", "_detect_magic_numbers", "warning", "Raw numeric literals in logic — use named constants instead."),
+        ("Long Parameter List", "_detect_long_params", "warning", "Functions with >5 parameters — consider a parameter object."),
+        ("Commented-Out Code", "_detect_dead_code_comments", "info", "Blocks of commented-out source code should be deleted, not commented."),
+        ("print() Debugging", "_detect_print_debugging", "info", "print() statements in production code — use a proper logger."),
+        ("TODO / FIXME", "_detect_todos", "info", "Unresolved TODO/FIXME/HACK markers in source."),
+        ("Duplicate Code", "_detect_duplication_smell", "warning", "Similar code blocks detected across files."),
+        ("Bare Except", "_detect_bare_except", "warning", "Python bare `except:` catches all exceptions — use specific types."),
     ]
 
     def __init__(self, config: Config) -> None:
@@ -242,8 +233,8 @@ class PatternDetector:
             return PatternReport()
 
         design_patterns = self._detect_design_patterns(source_files)
-        best_practices  = self._detect_best_practices(source_files, metrics)
-        code_smells     = self._detect_code_smells(source_files, metrics)
+        best_practices = self._detect_best_practices(source_files, metrics)
+        code_smells = self._detect_code_smells(source_files, metrics)
 
         return PatternReport(
             design_patterns=design_patterns,
@@ -255,8 +246,8 @@ class PatternDetector:
 
     def _detect_design_patterns(self, source_files: list[SourceFile]) -> list[Finding]:
         findings: list[Finding] = []
-        combined = "\n".join(sf.content for sf in source_files)
-        all_paths = [sf.path for sf in source_files]
+        "\n".join(sf.content for sf in source_files)
+        [sf.path for sf in source_files]
 
         for name, regexes, confidence, desc in self._PATTERN_SIGNATURES:
             matched_files: list[str] = []
@@ -264,74 +255,75 @@ class PatternDetector:
                 if any(re.search(rx, sf.content, re.I) for rx in regexes):
                     matched_files.append(sf.path)
             if matched_files:
-                findings.append(Finding(
-                    category="pattern",
-                    name=name,
-                    severity="info",
-                    confidence=confidence,
-                    files=matched_files[:5],
-                    description=desc,
-                ))
+                findings.append(
+                    Finding(
+                        category="pattern",
+                        name=name,
+                        severity="info",
+                        confidence=confidence,
+                        files=matched_files[:5],
+                        description=desc,
+                    )
+                )
         return findings
 
     # ── Best Practices ────────────────────────────────────────────────────────
 
-    def _detect_best_practices(
-        self, source_files: list[SourceFile], metrics: CodeMetrics
-    ) -> list[Finding]:
+    def _detect_best_practices(self, source_files: list[SourceFile], metrics: CodeMetrics) -> list[Finding]:
         findings: list[Finding] = []
-        combined = "\n".join(sf.content for sf in source_files)
-        file_paths = {sf.path: sf for sf in source_files}
+        "\n".join(sf.content for sf in source_files)
+        {sf.path: sf for sf in source_files}
 
         for name, regex, desc in self._PRACTICE_CHECKS:
             if regex is None:
                 # Structural check: multiple packages = SoC
                 dirs = {sf.path.rsplit("/", 1)[0] for sf in source_files if "/" in sf.path}
                 if len(dirs) >= 3:
-                    findings.append(Finding(
+                    findings.append(
+                        Finding(
+                            category="practice",
+                            name=name,
+                            severity="info",
+                            confidence="medium",
+                            files=[],
+                            description=desc,
+                        )
+                    )
+                continue
+
+            matched = [sf.path for sf in source_files if re.search(regex, sf.content, re.M)]
+            if matched:
+                findings.append(
+                    Finding(
                         category="practice",
                         name=name,
                         severity="info",
-                        confidence="medium",
-                        files=[],
+                        confidence="high",
+                        files=matched[:5],
                         description=desc,
-                    ))
-                continue
-
-            matched = [
-                sf.path for sf in source_files
-                if re.search(regex, sf.content, re.M)
-            ]
-            if matched:
-                findings.append(Finding(
-                    category="practice",
-                    name=name,
-                    severity="info",
-                    confidence="high",
-                    files=matched[:5],
-                    description=desc,
-                ))
+                    )
+                )
 
         return findings
 
     # ── Code Smells ────────────────────────────────────────────────────────────
 
-    def _detect_code_smells(
-        self, source_files: list[SourceFile], metrics: CodeMetrics
-    ) -> list[Finding]:
+    def _detect_code_smells(self, source_files: list[SourceFile], metrics: CodeMetrics) -> list[Finding]:
         findings: list[Finding] = []
         for smell_name, method_name, severity, desc in self._SMELL_DEFINITIONS:
             detector = getattr(self, method_name)
             affected = detector(source_files, metrics)
             if affected:
-                findings.append(Finding(
-                    category="smell",
-                    name=smell_name,
-                    severity=severity,
-                    confidence="medium",
-                    files=affected[:5],
-                    description=desc,
-                ))
+                findings.append(
+                    Finding(
+                        category="smell",
+                        name=smell_name,
+                        severity=severity,
+                        confidence="medium",
+                        files=affected[:5],
+                        description=desc,
+                    )
+                )
         return findings
 
     # Individual smell detectors —————————————————————————————————————————————
@@ -347,22 +339,13 @@ class PatternDetector:
         return result
 
     def _detect_long_method(self, sfs: list[SourceFile], metrics) -> list[str]:
-        return [
-            m.path for m in metrics.file_metrics
-            if m.avg_function_length > 50
-        ]
+        return [m.path for m in metrics.file_metrics if m.avg_function_length > 50]
 
     def _detect_deep_nesting(self, sfs: list[SourceFile], metrics) -> list[str]:
-        return [
-            m.path for m in metrics.file_metrics
-            if m.nested_depth_score > 4
-        ]
+        return [m.path for m in metrics.file_metrics if m.nested_depth_score > 4]
 
     def _detect_magic_numbers(self, sfs: list[SourceFile], metrics) -> list[str]:
-        return [
-            m.path for m in metrics.file_metrics
-            if m.magic_numbers > 5
-        ]
+        return [m.path for m in metrics.file_metrics if m.magic_numbers > 5]
 
     def _detect_long_params(self, sfs: list[SourceFile], _metrics) -> list[str]:
         result = []

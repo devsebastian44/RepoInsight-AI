@@ -18,38 +18,38 @@ Metrics produced:
 from __future__ import annotations
 
 import re
-from collections import Counter
 from dataclasses import dataclass, field
-from typing import Optional
 
 from config import Config
 from data_collection.code_extractor import SourceFile
 
-
 # ── Result Models ─────────────────────────────────────────────────────────────
+
 
 @dataclass
 class FileMetrics:
     """Per-file quality metrics."""
+
     path: str
-    complexity_score: float          # 0–100 (higher = more complex)
-    comment_density: float           # 0.0–1.0
-    avg_function_length: float       # Lines per function
+    complexity_score: float  # 0–100 (higher = more complex)
+    comment_density: float  # 0.0–1.0
+    avg_function_length: float  # Lines per function
     function_count: int
     class_count: int
     import_count: int
     max_line_length: int
-    long_lines_ratio: float          # Fraction of lines > 120 chars
-    magic_numbers: int               # Occurrences of raw numeric literals
-    nested_depth_score: float        # Proxy for deep nesting (0–10)
-    naming_score: float              # 0–10 (snake_case / camelCase adherence)
+    long_lines_ratio: float  # Fraction of lines > 120 chars
+    magic_numbers: int  # Occurrences of raw numeric literals
+    nested_depth_score: float  # Proxy for deep nesting (0–10)
+    naming_score: float  # 0–10 (snake_case / camelCase adherence)
     has_docstrings: bool
-    has_type_hints: bool             # Python-specific
+    has_type_hints: bool  # Python-specific
 
 
 @dataclass
 class CodeMetrics:
     """Aggregate code metrics across the full repository."""
+
     total_files: int
     total_lines: int
     total_code_lines: int
@@ -61,20 +61,21 @@ class CodeMetrics:
     avg_file_length: float
     avg_function_length: float
     avg_complexity: float
-    duplication_score: float         # 0–100 estimate
-    modularity_score: float          # 0–100
-    naming_score: float              # 0–100
-    type_hint_ratio: float           # Python: fraction of files with hints
-    docstring_ratio: float           # Fraction of files with docstrings
+    duplication_score: float  # 0–100 estimate
+    modularity_score: float  # 0–100
+    naming_score: float  # 0–100
+    type_hint_ratio: float  # Python: fraction of files with hints
+    docstring_ratio: float  # Fraction of files with docstrings
     long_method_count: int
     magic_number_count: int
     max_file_length: int
     deep_nesting_ratio: float
     file_metrics: list[FileMetrics] = field(default_factory=list)
-    quality_score: float = 0.0       # Computed composite 0–100
+    quality_score: float = 0.0  # Computed composite 0–100
 
 
 # ── Analyzer ──────────────────────────────────────────────────────────────────
+
 
 class CodeAnalyzer:
     """
@@ -85,20 +86,18 @@ class CodeAnalyzer:
     """
 
     # Branch keywords that contribute to complexity
-    _BRANCH_KW = re.compile(
-        r"\b(if|elif|else|for|while|try|except|catch|switch|case|&&|\|\|)\b"
-    )
+    _BRANCH_KW = re.compile(r"\b(if|elif|else|for|while|try|except|catch|switch|case|&&|\|\|)\b")
     _MAGIC_NUM = re.compile(r"(?<!['\"\w])(?!0[xXbBoO])\d+(?:\.\d+)?(?!['\"\w\d])")
     _NESTED = re.compile(r"^(\s+)(if|for|while|with|try)\b", re.M)
-    _SNAKE   = re.compile(r"^[a-z_][a-z0-9_]*$")
-    _CAMEL   = re.compile(r"^[a-z][a-zA-Z0-9]*$")
-    _PASCAL  = re.compile(r"^[A-Z][a-zA-Z0-9]*$")
+    _SNAKE = re.compile(r"^[a-z_][a-z0-9_]*$")
+    _CAMEL = re.compile(r"^[a-z][a-zA-Z0-9]*$")
+    _PASCAL = re.compile(r"^[A-Z][a-zA-Z0-9]*$")
     _SCREAMING = re.compile(r"^[A-Z_][A-Z0-9_]*$")
 
     # Thresholds
-    LONG_METHOD_THRESHOLD = 50        # Lines
-    LONG_LINE_THRESHOLD   = 120       # Characters
-    MAGIC_NUM_THRESHOLD   = 5         # Per file
+    LONG_METHOD_THRESHOLD = 50  # Lines
+    LONG_LINE_THRESHOLD = 120  # Characters
+    MAGIC_NUM_THRESHOLD = 5  # Per file
 
     def __init__(self, config: Config) -> None:
         self.config = config
@@ -110,29 +109,26 @@ class CodeAnalyzer:
 
         file_metrics = [self._analyze_file(sf) for sf in source_files]
 
-        total_lines   = sum(sf.line_count    for sf in source_files)
-        total_code    = sum(sf.code_lines    for sf in source_files)
+        total_lines = sum(sf.line_count for sf in source_files)
+        total_code = sum(sf.code_lines for sf in source_files)
         total_comment = sum(sf.comment_lines for sf in source_files)
-        total_blank   = sum(sf.blank_lines   for sf in source_files)
-        total_funcs   = sum(sf_m.function_count for sf_m in file_metrics)
-        total_classes = sum(sf_m.class_count    for sf_m in file_metrics)
+        total_blank = sum(sf.blank_lines for sf in source_files)
+        total_funcs = sum(sf_m.function_count for sf_m in file_metrics)
+        total_classes = sum(sf_m.class_count for sf_m in file_metrics)
 
         comment_density = total_comment / max(total_lines, 1)
         avg_file_length = total_lines / len(source_files)
 
         all_fn_lengths = [sf_m.avg_function_length for sf_m in file_metrics if sf_m.function_count > 0]
-        avg_fn_length  = sum(all_fn_lengths) / len(all_fn_lengths) if all_fn_lengths else 0
+        avg_fn_length = sum(all_fn_lengths) / len(all_fn_lengths) if all_fn_lengths else 0
 
-        avg_complexity  = sum(sf_m.complexity_score for sf_m in file_metrics) / len(file_metrics)
-        duplication     = self._estimate_duplication(source_files)
-        modularity      = self._compute_modularity(source_files, file_metrics)
-        naming_score    = sum(sf_m.naming_score for sf_m in file_metrics) / len(file_metrics)
+        avg_complexity = sum(sf_m.complexity_score for sf_m in file_metrics) / len(file_metrics)
+        duplication = self._estimate_duplication(source_files)
+        modularity = self._compute_modularity(source_files, file_metrics)
+        naming_score = sum(sf_m.naming_score for sf_m in file_metrics) / len(file_metrics)
 
         py_files = [sf for sf in source_files if sf.extension == ".py"]
-        type_hint_ratio = (
-            sum(1 for m in file_metrics if m.has_type_hints) / len(py_files)
-            if py_files else 0.0
-        )
+        type_hint_ratio = sum(1 for m in file_metrics if m.has_type_hints) / len(py_files) if py_files else 0.0
         docstring_ratio = sum(1 for m in file_metrics if m.has_docstrings) / len(file_metrics)
         long_method_count = sum(1 for m in file_metrics if m.avg_function_length > self.LONG_METHOD_THRESHOLD)
         magic_number_count = sum(m.magic_numbers for m in file_metrics)
@@ -153,7 +149,7 @@ class CodeAnalyzer:
             avg_complexity=avg_complexity,
             duplication_score=duplication,
             modularity_score=modularity,
-            naming_score=naming_score * 10,      # scale to 100
+            naming_score=naming_score * 10,  # scale to 100
             type_hint_ratio=type_hint_ratio,
             docstring_ratio=docstring_ratio,
             long_method_count=long_method_count,
@@ -170,7 +166,7 @@ class CodeAnalyzer:
 
     def _analyze_file(self, sf: SourceFile) -> FileMetrics:
         content = sf.content
-        lines   = sf.lines
+        lines = sf.lines
 
         # Complexity: branch keywords / (functions + 1)
         branch_count = len(self._BRANCH_KW.findall(content))
@@ -186,15 +182,13 @@ class CodeAnalyzer:
 
         # Magic numbers (excluding common: 0, 1, 2, 10, 100)
         common_nums = {"0", "1", "2", "10", "100", "255"}
-        magic_nums = [
-            m for m in self._MAGIC_NUM.findall(content)
-            if m not in common_nums
-        ]
+        magic_nums = [m for m in self._MAGIC_NUM.findall(content) if m not in common_nums]
 
         # Nesting depth score: count lines with deep indentation (>= 4 levels)
         deep_lines = sum(
-            1 for l in sf.content.splitlines()
-            if len(l) - len(l.lstrip()) >= 16   # 4 × 4-space indent
+            1
+            for l in sf.content.splitlines()
+            if len(l) - len(l.lstrip()) >= 16  # 4 × 4-space indent
         )
         nested_score = min(10.0, deep_lines / max(len(lines), 1) * 100)
 
@@ -242,7 +236,7 @@ class CodeAnalyzer:
                 if self._CAMEL.match(name) or self._PASCAL.match(name):
                     score += 1
             else:
-                score += 0.7    # Unknown convention — neutral
+                score += 0.7  # Unknown convention — neutral
         return min(10.0, (score / len(names)) * 10)
 
     def _estimate_duplication(self, source_files: list[SourceFile]) -> float:
@@ -255,7 +249,7 @@ class CodeAnalyzer:
 
         def ngrams(lines: list[str], n: int = 5) -> set[tuple]:
             stripped = [l.strip() for l in lines if len(l.strip()) > 10]
-            return {tuple(stripped[i: i + n]) for i in range(len(stripped) - n + 1)}
+            return {tuple(stripped[i : i + n]) for i in range(len(stripped) - n + 1)}
 
         fingerprints = [ngrams(sf.lines) for sf in source_files]
         duplicated = 0
@@ -277,10 +271,10 @@ class CodeAnalyzer:
         """
         total_classes = sum(m.class_count for m in file_metrics)
         avg_size = sum(sf.line_count for sf in source_files) / max(len(source_files), 1)
-        
-        class_score  = min(40, total_classes * 2)
-        size_score   = max(0, 40 - max(0, avg_size - 200) / 10)
-        multi_file   = min(20, len(source_files))
+
+        class_score = min(40, total_classes * 2)
+        size_score = max(0, 40 - max(0, avg_size - 200) / 10)
+        multi_file = min(20, len(source_files))
         return class_score + size_score + multi_file
 
     def _compute_quality_score(self, m: CodeMetrics) -> float:
@@ -289,17 +283,14 @@ class CodeAnalyzer:
         Weighted combination of key quality indicators.
         """
         weights = {
-            "comment_density":   (min(m.comment_density * 5, 1.0),  15),
-            "naming":            (m.naming_score / 100,              20),
-            "complexity":        (1 - min(m.avg_complexity / 100, 1), 20),
-            "duplication":       (1 - m.duplication_score / 100,     15),
-            "modularity":        (m.modularity_score / 100,          10),
-            "docstrings":        (m.docstring_ratio,                  10),
-            "type_hints":        (m.type_hint_ratio,                  5),
-            "long_lines":        (
-                1 - sum(fm.long_lines_ratio for fm in m.file_metrics) / max(len(m.file_metrics), 1),
-                5
-            ),
+            "comment_density": (min(m.comment_density * 5, 1.0), 15),
+            "naming": (m.naming_score / 100, 20),
+            "complexity": (1 - min(m.avg_complexity / 100, 1), 20),
+            "duplication": (1 - m.duplication_score / 100, 15),
+            "modularity": (m.modularity_score / 100, 10),
+            "docstrings": (m.docstring_ratio, 10),
+            "type_hints": (m.type_hint_ratio, 5),
+            "long_lines": (1 - sum(fm.long_lines_ratio for fm in m.file_metrics) / max(len(m.file_metrics), 1), 5),
         }
 
         total_weight = sum(w for _, (_, w) in weights.items())
@@ -308,12 +299,25 @@ class CodeAnalyzer:
 
     def _empty_metrics(self) -> CodeMetrics:
         return CodeMetrics(
-            total_files=0, total_lines=0, total_code_lines=0,
-            total_comment_lines=0, total_blank_lines=0,
-            comment_density=0, total_functions=0, total_classes=0,
-            avg_file_length=0, avg_function_length=0, avg_complexity=0,
-            duplication_score=0, modularity_score=0, naming_score=0,
-            type_hint_ratio=0, docstring_ratio=0, long_method_count=0,
-            magic_number_count=0, max_file_length=0, deep_nesting_ratio=0,
+            total_files=0,
+            total_lines=0,
+            total_code_lines=0,
+            total_comment_lines=0,
+            total_blank_lines=0,
+            comment_density=0,
+            total_functions=0,
+            total_classes=0,
+            avg_file_length=0,
+            avg_function_length=0,
+            avg_complexity=0,
+            duplication_score=0,
+            modularity_score=0,
+            naming_score=0,
+            type_hint_ratio=0,
+            docstring_ratio=0,
+            long_method_count=0,
+            magic_number_count=0,
+            max_file_length=0,
+            deep_nesting_ratio=0,
             quality_score=0,
         )

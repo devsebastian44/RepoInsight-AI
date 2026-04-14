@@ -16,20 +16,19 @@ Feature groups:
 from __future__ import annotations
 
 import math
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
-from typing import Any
 
 import numpy as np
 
+from analysis.code_analyzer import CodeMetrics
+from analysis.pattern_detector import PatternReport
 from config import Config
 from data_collection.code_extractor import SourceFile
 from data_collection.github_client import RepositoryData
-from analysis.code_analyzer import CodeMetrics
-from analysis.pattern_detector import PatternReport
-
 
 # ── Feature Vector ────────────────────────────────────────────────────────────
+
 
 @dataclass
 class FeatureVector:
@@ -39,60 +38,60 @@ class FeatureVector:
     """
 
     # ── Repository Metadata ──────────────────────────────────────────────────
-    stars_log:              float = 0.0   # log1p(stars)
-    forks_log:              float = 0.0   # log1p(forks)
-    repo_age_days:          float = 0.0
-    days_since_push:        float = 0.0
-    commits_log:            float = 0.0   # log1p(commits_count)
-    branches_count:         float = 0.0
-    contributors_log:       float = 0.0   # log1p(contributors)
-    releases_log:           float = 0.0
-    has_readme:             float = 0.0
-    readme_length:          float = 0.0   # log1p(chars)
-    has_license:            float = 0.0
-    topics_count:           float = 0.0
+    stars_log: float = 0.0  # log1p(stars)
+    forks_log: float = 0.0  # log1p(forks)
+    repo_age_days: float = 0.0
+    days_since_push: float = 0.0
+    commits_log: float = 0.0  # log1p(commits_count)
+    branches_count: float = 0.0
+    contributors_log: float = 0.0  # log1p(contributors)
+    releases_log: float = 0.0
+    has_readme: float = 0.0
+    readme_length: float = 0.0  # log1p(chars)
+    has_license: float = 0.0
+    topics_count: float = 0.0
 
     # ── Code Volume ──────────────────────────────────────────────────────────
-    file_count:             float = 0.0
-    total_lines_log:        float = 0.0
-    total_code_lines_log:   float = 0.0
-    functions_log:          float = 0.0
-    classes_log:            float = 0.0
-    avg_file_length:        float = 0.0
-    max_file_length_log:    float = 0.0
+    file_count: float = 0.0
+    total_lines_log: float = 0.0
+    total_code_lines_log: float = 0.0
+    functions_log: float = 0.0
+    classes_log: float = 0.0
+    avg_file_length: float = 0.0
+    max_file_length_log: float = 0.0
 
     # ── Quality Metrics ──────────────────────────────────────────────────────
-    comment_density:        float = 0.0   # 0–1
-    avg_complexity:         float = 0.0   # 0–100
-    duplication_score:      float = 0.0   # 0–100
-    modularity_score:       float = 0.0   # 0–100
-    naming_score:           float = 0.0   # 0–100
-    docstring_ratio:        float = 0.0   # 0–1
-    type_hint_ratio:        float = 0.0   # 0–1
-    quality_score:          float = 0.0   # 0–100
+    comment_density: float = 0.0  # 0–1
+    avg_complexity: float = 0.0  # 0–100
+    duplication_score: float = 0.0  # 0–100
+    modularity_score: float = 0.0  # 0–100
+    naming_score: float = 0.0  # 0–100
+    docstring_ratio: float = 0.0  # 0–1
+    type_hint_ratio: float = 0.0  # 0–1
+    quality_score: float = 0.0  # 0–100
 
     # ── Project Structure ─────────────────────────────────────────────────────
-    unique_dirs:            float = 0.0
-    max_depth:              float = 0.0
-    language_count:         float = 0.0
-    avg_file_depth:         float = 0.0
+    unique_dirs: float = 0.0
+    max_depth: float = 0.0
+    language_count: float = 0.0
+    avg_file_depth: float = 0.0
 
     # ── Dev Practices ─────────────────────────────────────────────────────────
-    has_ci:                 float = 0.0
-    has_tests:              float = 0.0
-    has_docker:             float = 0.0
-    has_requirements:       float = 0.0
+    has_ci: float = 0.0
+    has_tests: float = 0.0
+    has_docker: float = 0.0
+    has_requirements: float = 0.0
 
     # ── Pattern & Smell Signals ───────────────────────────────────────────────
-    design_pattern_count:   float = 0.0
-    best_practice_count:    float = 0.0
-    code_smell_count:       float = 0.0
-    critical_smell_count:   float = 0.0
-    practice_score:         float = 0.0   # 0–100
+    design_pattern_count: float = 0.0
+    best_practice_count: float = 0.0
+    code_smell_count: float = 0.0
+    critical_smell_count: float = 0.0
+    practice_score: float = 0.0  # 0–100
 
     # ── Commit Activity ───────────────────────────────────────────────────────
-    commit_frequency:       float = 0.0   # commits / age_days
-    commit_message_quality: float = 0.0   # avg message length score
+    commit_frequency: float = 0.0  # commits / age_days
+    commit_message_quality: float = 0.0  # avg message length score
 
     def to_numpy(self) -> np.ndarray:
         """Return a 1D numpy array of all features (in field order)."""
@@ -104,6 +103,7 @@ class FeatureVector:
 
 
 # ── Engineer ──────────────────────────────────────────────────────────────────
+
 
 class FeatureEngineer:
     """Builds a FeatureVector from all collected data."""
@@ -132,16 +132,16 @@ class FeatureEngineer:
     # ── Feature groups ─────────────────────────────────────────────────────────
 
     def _add_repo_features(self, fv: FeatureVector, r: RepositoryData) -> None:
-        fv.stars_log        = math.log1p(r.stars)
-        fv.forks_log        = math.log1p(r.forks)
-        fv.commits_log      = math.log1p(r.commits_count)
-        fv.branches_count   = min(r.branches_count, 50)
+        fv.stars_log = math.log1p(r.stars)
+        fv.forks_log = math.log1p(r.forks)
+        fv.commits_log = math.log1p(r.commits_count)
+        fv.branches_count = min(r.branches_count, 50)
         fv.contributors_log = math.log1p(r.contributors_count)
-        fv.releases_log     = math.log1p(r.releases_count)
-        fv.has_readme       = 1.0 if r.readme_content else 0.0
-        fv.readme_length    = math.log1p(len(r.readme_content or ""))
-        fv.has_license      = 1.0 if r.license_name else 0.0
-        fv.topics_count     = min(len(r.topics), 20)
+        fv.releases_log = math.log1p(r.releases_count)
+        fv.has_readme = 1.0 if r.readme_content else 0.0
+        fv.readme_length = math.log1p(len(r.readme_content or ""))
+        fv.has_license = 1.0 if r.license_name else 0.0
+        fv.topics_count = min(len(r.topics), 20)
 
         now = datetime.now(timezone.utc)
         if r.created_at:
@@ -158,50 +158,44 @@ class FeatureEngineer:
             except ValueError:
                 fv.days_since_push = 365.0
 
-    def _add_code_volume_features(
-        self, fv: FeatureVector, sfs: list[SourceFile], m: CodeMetrics
-    ) -> None:
-        fv.file_count            = len(sfs)
-        fv.total_lines_log       = math.log1p(m.total_lines)
-        fv.total_code_lines_log  = math.log1p(m.total_code_lines)
-        fv.functions_log         = math.log1p(m.total_functions)
-        fv.classes_log           = math.log1p(m.total_classes)
-        fv.avg_file_length       = min(m.avg_file_length, 1000)
-        fv.max_file_length_log   = math.log1p(m.max_file_length)
+    def _add_code_volume_features(self, fv: FeatureVector, sfs: list[SourceFile], m: CodeMetrics) -> None:
+        fv.file_count = len(sfs)
+        fv.total_lines_log = math.log1p(m.total_lines)
+        fv.total_code_lines_log = math.log1p(m.total_code_lines)
+        fv.functions_log = math.log1p(m.total_functions)
+        fv.classes_log = math.log1p(m.total_classes)
+        fv.avg_file_length = min(m.avg_file_length, 1000)
+        fv.max_file_length_log = math.log1p(m.max_file_length)
 
     def _add_quality_features(self, fv: FeatureVector, m: CodeMetrics) -> None:
-        fv.comment_density   = m.comment_density
-        fv.avg_complexity    = m.avg_complexity
+        fv.comment_density = m.comment_density
+        fv.avg_complexity = m.avg_complexity
         fv.duplication_score = m.duplication_score
-        fv.modularity_score  = m.modularity_score
-        fv.naming_score      = m.naming_score
-        fv.docstring_ratio   = m.docstring_ratio
-        fv.type_hint_ratio   = m.type_hint_ratio
-        fv.quality_score     = m.quality_score
+        fv.modularity_score = m.modularity_score
+        fv.naming_score = m.naming_score
+        fv.docstring_ratio = m.docstring_ratio
+        fv.type_hint_ratio = m.type_hint_ratio
+        fv.quality_score = m.quality_score
 
-    def _add_structure_features(
-        self, fv: FeatureVector, sfs: list[SourceFile], r: RepositoryData
-    ) -> None:
+    def _add_structure_features(self, fv: FeatureVector, sfs: list[SourceFile], r: RepositoryData) -> None:
         if sfs:
             dirs = {sf.path.rsplit("/", 1)[0] for sf in sfs if "/" in sf.path}
-            fv.unique_dirs    = len(dirs)
-            fv.max_depth      = max(sf.depth for sf in sfs)
+            fv.unique_dirs = len(dirs)
+            fv.max_depth = max(sf.depth for sf in sfs)
             fv.avg_file_depth = sum(sf.depth for sf in sfs) / len(sfs)
         fv.language_count = len(r.languages)
 
     def _add_practice_features(self, fv: FeatureVector, r: RepositoryData) -> None:
-        fv.has_ci           = 1.0 if r.has_ci           else 0.0
-        fv.has_tests        = 1.0 if r.has_tests        else 0.0
-        fv.has_docker       = 1.0 if r.has_docker       else 0.0
+        fv.has_ci = 1.0 if r.has_ci else 0.0
+        fv.has_tests = 1.0 if r.has_tests else 0.0
+        fv.has_docker = 1.0 if r.has_docker else 0.0
         fv.has_requirements = 1.0 if r.has_requirements else 0.0
 
     def _add_pattern_features(self, fv: FeatureVector, p: PatternReport) -> None:
-        fv.design_pattern_count  = len(p.design_patterns)
-        fv.best_practice_count   = len(p.best_practices)
-        fv.code_smell_count      = len(p.code_smells)
-        fv.critical_smell_count  = sum(
-            1 for s in p.code_smells if s.severity == "critical"
-        )
+        fv.design_pattern_count = len(p.design_patterns)
+        fv.best_practice_count = len(p.best_practices)
+        fv.code_smell_count = len(p.code_smells)
+        fv.critical_smell_count = sum(1 for s in p.code_smells if s.severity == "critical")
         fv.practice_score = p.practice_score
 
     def _add_commit_features(self, fv: FeatureVector, r: RepositoryData) -> None:
@@ -222,6 +216,7 @@ class FeatureEngineer:
 # ── Patch RepositoryData to add helper property ───────────────────────────────
 # We add a computed property without modifying the dataclass.
 
+
 def _repo_age_days_approx(self) -> float:
     """Approximate repo age in days from created_at."""
     if not self.created_at:
@@ -235,4 +230,5 @@ def _repo_age_days_approx(self) -> float:
 
 # Monkey-patch property onto RepositoryData
 from data_collection.github_client import RepositoryData as _RD
+
 _RD.repo_age_days_approx = property(_repo_age_days_approx)

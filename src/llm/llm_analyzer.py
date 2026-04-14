@@ -23,30 +23,32 @@ import re
 import textwrap
 from dataclasses import dataclass, field
 
-from config import Config
-from data_collection.code_extractor import SourceFile
 from analysis.code_analyzer import CodeMetrics
 from analysis.pattern_detector import PatternReport
+from config import Config
+from data_collection.code_extractor import SourceFile
 from ml_model.classifier import ClassificationResult
 
-
 # ── Result Model ──────────────────────────────────────────────────────────────
+
 
 @dataclass
 class LLMInsights:
     """Structured output from the LLM code review."""
-    summary: str                               = ""
-    strengths: list[str]                       = field(default_factory=list)
-    improvements: list[str]                    = field(default_factory=list)
-    architectural_observations: list[str]      = field(default_factory=list)
-    security_concerns: list[str]               = field(default_factory=list)
-    scalability_notes: str                     = ""
-    raw_response: str                          = ""
-    provider: str                              = "none"
-    error: str | None                          = None
+
+    summary: str = ""
+    strengths: list[str] = field(default_factory=list)
+    improvements: list[str] = field(default_factory=list)
+    architectural_observations: list[str] = field(default_factory=list)
+    security_concerns: list[str] = field(default_factory=list)
+    scalability_notes: str = ""
+    raw_response: str = ""
+    provider: str = "none"
+    error: str | None = None
 
 
 # ── Analyzer ──────────────────────────────────────────────────────────────────
+
 
 class LLMAnalyzer:
     """Routes to the configured LLM provider and parses the response."""
@@ -80,19 +82,19 @@ class LLMAnalyzer:
     def _build_prompt(self, code_sample: str, context_summary: str) -> str:
         return textwrap.dedent(f"""
         You are a senior software engineer performing a code review of a GitHub repository.
-        
+
         ## Context
         {context_summary}
-        
+
         ## Code Sample
         ```
         {code_sample}
         ```
-        
+
         ## Task
         Analyze this repository's code quality, architecture, and engineering practices.
         Respond ONLY with a valid JSON object matching this exact schema:
-        
+
         {{
           "summary": "2-3 sentence overall assessment",
           "strengths": ["strength 1", "strength 2", "..."],
@@ -101,7 +103,7 @@ class LLMAnalyzer:
           "security_concerns": ["concern 1 or 'none identified'"],
           "scalability_notes": "1-2 sentences on scalability"
         }}
-        
+
         Be specific, actionable, and reference actual patterns or code you observed.
         Limit each list to 5 items maximum.
         """).strip()
@@ -125,7 +127,7 @@ class LLMAnalyzer:
             if len(sample_lines) >= budget:
                 break
 
-        return "\n".join(sample_lines[: budget])
+        return "\n".join(sample_lines[:budget])
 
     def _build_context_summary(
         self,
@@ -152,6 +154,7 @@ class LLMAnalyzer:
     def _call_openai(self, prompt: str) -> LLMInsights:
         try:
             import openai
+
             client = openai.OpenAI(api_key=self.config.openai_api_key)
             response = client.chat.completions.create(
                 model=self.config.llm_model_openai,
@@ -170,6 +173,7 @@ class LLMAnalyzer:
     def _call_anthropic(self, prompt: str) -> LLMInsights:
         try:
             import anthropic
+
             client = anthropic.Anthropic(api_key=self.config.anthropic_api_key)
             response = client.messages.create(
                 model=self.config.llm_model_anthropic,
@@ -225,15 +229,17 @@ class LLMAnalyzer:
             summary=(
                 f"This appears to be a {level}-level repository with a quality score of "
                 f"{qs:.0f}/100. "
-                + ("The codebase demonstrates solid engineering practices." if qs > 65
-                   else "There are opportunities to improve code quality and maintainability.")
+                + (
+                    "The codebase demonstrates solid engineering practices."
+                    if qs > 65
+                    else "There are opportunities to improve code quality and maintainability."
+                )
             ),
             strengths=strengths[:5],
             improvements=improvements[:5],
             architectural_observations=[
                 f"Project has {metrics.total_files} source files across multiple modules.",
-                f"{'Good' if metrics.modularity_score > 60 else 'Limited'} modularization with "
-                f"{metrics.total_classes} classes detected.",
+                f"{'Good' if metrics.modularity_score > 60 else 'Limited'} modularization with {metrics.total_classes} classes detected.",
             ],
             security_concerns=["No obvious secrets hardcoded (surface-level scan only)."],
             scalability_notes=(
@@ -253,14 +259,14 @@ class LLMAnalyzer:
             cleaned = re.sub(r"```(?:json)?\s*", "", raw).strip()
             data = json.loads(cleaned)
             return LLMInsights(
-                summary                   = data.get("summary", ""),
-                strengths                 = data.get("strengths", []),
-                improvements              = data.get("improvements", []),
-                architectural_observations= data.get("architectural_observations", []),
-                security_concerns         = data.get("security_concerns", []),
-                scalability_notes         = data.get("scalability_notes", ""),
-                raw_response              = raw,
-                provider                  = provider,
+                summary=data.get("summary", ""),
+                strengths=data.get("strengths", []),
+                improvements=data.get("improvements", []),
+                architectural_observations=data.get("architectural_observations", []),
+                security_concerns=data.get("security_concerns", []),
+                scalability_notes=data.get("scalability_notes", ""),
+                raw_response=raw,
+                provider=provider,
             )
         except (json.JSONDecodeError, KeyError) as exc:
             return LLMInsights(

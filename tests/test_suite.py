@@ -7,9 +7,10 @@ Run with:  pytest tests/test_suite.py -v
 
 from __future__ import annotations
 
-import sys
-import os
 import math
+import os
+import sys
+
 import numpy as np
 import pytest
 
@@ -22,6 +23,7 @@ from config import Config
 # ─────────────────────────────────────────────────────────────────────────────
 #  Fixtures
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 def config():
@@ -74,7 +76,8 @@ class UserService:
 
 @pytest.fixture
 def source_file(sample_python_source):
-    from data_collection.code_extractor import CodeExtractor, SourceFile
+    from data_collection.code_extractor import CodeExtractor
+
     extractor = CodeExtractor(Config())
     return extractor._parse("services/user_service.py", ".py", sample_python_source)
 
@@ -82,18 +85,21 @@ def source_file(sample_python_source):
 @pytest.fixture
 def code_metrics(source_file):
     from analysis.code_analyzer import CodeAnalyzer
+
     return CodeAnalyzer(Config()).analyze([source_file])
 
 
 @pytest.fixture
 def pattern_report(source_file, code_metrics):
     from analysis.pattern_detector import PatternDetector
+
     return PatternDetector(Config()).detect([source_file], code_metrics)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  Config Tests
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class TestConfig:
     def test_default_values(self, config):
@@ -120,6 +126,7 @@ class TestConfig:
 # ─────────────────────────────────────────────────────────────────────────────
 #  CodeExtractor Tests
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class TestCodeExtractor:
     def test_parse_basic(self, source_file):
@@ -150,10 +157,11 @@ class TestCodeExtractor:
 
     def test_code_lines_invariant(self, source_file):
         total = source_file.code_lines + source_file.comment_lines + source_file.blank_lines
-        assert abs(total - source_file.line_count) <= 2   # small rounding allowed
+        assert abs(total - source_file.line_count) <= 2  # small rounding allowed
 
     def test_js_function_extraction(self):
         from data_collection.code_extractor import CodeExtractor
+
         ext = CodeExtractor(Config())
         js_code = """
         function fetchData(url) { return fetch(url); }
@@ -164,6 +172,7 @@ class TestCodeExtractor:
 
     def test_large_file_respects_token_count(self):
         from data_collection.code_extractor import CodeExtractor
+
         ext = CodeExtractor(Config())
         large_content = "\n".join([f"x_{i} = {i}" for i in range(2000)])
         sf = ext._parse("big.py", ".py", large_content)
@@ -174,9 +183,11 @@ class TestCodeExtractor:
 #  CodeAnalyzer Tests
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class TestCodeAnalyzer:
     def test_returns_code_metrics(self, code_metrics):
         from analysis.code_analyzer import CodeMetrics
+
         assert isinstance(code_metrics, CodeMetrics)
 
     def test_quality_score_range(self, code_metrics):
@@ -200,13 +211,14 @@ class TestCodeAnalyzer:
 
     def test_empty_input_returns_zero_metrics(self, config):
         from analysis.code_analyzer import CodeAnalyzer
+
         metrics = CodeAnalyzer(config).analyze([])
         assert metrics.total_files == 0
         assert metrics.quality_score == 0
 
     def test_duplication_score_range(self, config):
-        from data_collection.code_extractor import CodeExtractor
         from analysis.code_analyzer import CodeAnalyzer
+        from data_collection.code_extractor import CodeExtractor
 
         ext = CodeExtractor(config)
         # Two identical files → high duplication
@@ -217,8 +229,8 @@ class TestCodeAnalyzer:
         assert 0 <= m.duplication_score <= 100
 
     def test_naming_score_good_python(self, config):
-        from data_collection.code_extractor import CodeExtractor
         from analysis.code_analyzer import CodeAnalyzer
+        from data_collection.code_extractor import CodeExtractor
 
         code = "def get_data():\n    pass\nclass DataService:\n    pass"
         sf = CodeExtractor(config)._parse("x.py", ".py", code)
@@ -230,11 +242,12 @@ class TestCodeAnalyzer:
 #  PatternDetector Tests
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class TestPatternDetector:
     def test_singleton_detected(self, config):
-        from data_collection.code_extractor import CodeExtractor
         from analysis.code_analyzer import CodeAnalyzer
         from analysis.pattern_detector import PatternDetector
+        from data_collection.code_extractor import CodeExtractor
 
         code = "class MyService:\n    _instance = None\n    def getInstance(self): pass"
         sf = CodeExtractor(config)._parse("s.py", ".py", code)
@@ -252,9 +265,9 @@ class TestPatternDetector:
         assert "Logging" in practice_names
 
     def test_todos_smell_detection(self, config):
-        from data_collection.code_extractor import CodeExtractor
         from analysis.code_analyzer import CodeAnalyzer
         from analysis.pattern_detector import PatternDetector
+        from data_collection.code_extractor import CodeExtractor
 
         code = "# TODO: refactor this mess\ndef broken(): pass"
         sf = CodeExtractor(config)._parse("t.py", ".py", code)
@@ -264,9 +277,9 @@ class TestPatternDetector:
         assert "TODO / FIXME" in smell_names
 
     def test_bare_except_smell(self, config):
-        from data_collection.code_extractor import CodeExtractor
         from analysis.code_analyzer import CodeAnalyzer
         from analysis.pattern_detector import PatternDetector
+        from data_collection.code_extractor import CodeExtractor
 
         code = "try:\n    risky()\nexcept:\n    pass"
         sf = CodeExtractor(config)._parse("b.py", ".py", code)
@@ -291,41 +304,59 @@ class TestPatternDetector:
 #  FeatureEngineer Tests
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class TestFeatureEngineer:
     def _make_repo_data(self):
         from data_collection.github_client import RepositoryData
+
         return RepositoryData(
-            owner="test", name="repo", full_name="test/repo",
-            description="A test repo", url="https://github.com/test/repo",
-            stars=100, forks=20, watchers=100, open_issues=5,
-            default_branch="main", created_at="2022-01-01T00:00:00Z",
-            updated_at="2024-01-01T00:00:00Z", pushed_at="2024-06-01T00:00:00Z",
-            size_kb=1500, language="Python", languages={"Python": 12000, "Shell": 400},
-            topics=["python", "ml"], has_wiki=True, has_issues=True,
-            has_projects=False, license_name="MIT", contributors_count=5,
-            commits_count=200, branches_count=4, releases_count=3,
-            commit_history=[{"message": "Add feature X", "sha": "abc123",
-                             "author": "dev", "date": "2024-01-01"}],
-            tree_entries=[], readme_content="# Test\nA test project.",
-            has_ci=True, has_tests=True, has_docker=False, has_requirements=True,
+            owner="test",
+            name="repo",
+            full_name="test/repo",
+            description="A test repo",
+            url="https://github.com/test/repo",
+            stars=100,
+            forks=20,
+            watchers=100,
+            open_issues=5,
+            default_branch="main",
+            created_at="2022-01-01T00:00:00Z",
+            updated_at="2024-01-01T00:00:00Z",
+            pushed_at="2024-06-01T00:00:00Z",
+            size_kb=1500,
+            language="Python",
+            languages={"Python": 12000, "Shell": 400},
+            topics=["python", "ml"],
+            has_wiki=True,
+            has_issues=True,
+            has_projects=False,
+            license_name="MIT",
+            contributors_count=5,
+            commits_count=200,
+            branches_count=4,
+            releases_count=3,
+            commit_history=[{"message": "Add feature X", "sha": "abc123", "author": "dev", "date": "2024-01-01"}],
+            tree_entries=[],
+            readme_content="# Test\nA test project.",
+            has_ci=True,
+            has_tests=True,
+            has_docker=False,
+            has_requirements=True,
         )
 
     def test_feature_vector_shape(self, config, source_file, code_metrics, pattern_report):
-        from analysis.feature_engineering import FeatureEngineer, FeatureVector
         from dataclasses import fields
 
-        fv = FeatureEngineer(config).build(
-            self._make_repo_data(), [source_file], code_metrics, pattern_report
-        )
+        from analysis.feature_engineering import FeatureEngineer, FeatureVector
+
+        fv = FeatureEngineer(config).build(self._make_repo_data(), [source_file], code_metrics, pattern_report)
         expected_len = len(fields(FeatureVector))
         assert len(fv.to_numpy()) == expected_len
 
     def test_feature_vector_all_finite(self, config, source_file, code_metrics, pattern_report):
         from analysis.feature_engineering import FeatureEngineer
 
-        fv = FeatureEngineer(config).build(
-            self._make_repo_data(), [source_file], code_metrics, pattern_report
-        )
+        fv = FeatureEngineer(config).build(self._make_repo_data(), [source_file], code_metrics, pattern_report)
         arr = fv.to_numpy()
         assert np.all(np.isfinite(arr)), "Feature vector contains NaN or Inf"
 
@@ -350,9 +381,11 @@ class TestFeatureEngineer:
 #  SyntheticDataGenerator Tests
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class TestSyntheticDataGenerator:
     def test_shape(self):
-        from ml_model.data_generator import SyntheticDataGenerator, SAMPLES_PER_CLASS
+        from ml_model.data_generator import SAMPLES_PER_CLASS, SyntheticDataGenerator
+
         gen = SyntheticDataGenerator(random_state=0)
         X, y = gen.generate()
         assert X.shape[0] == SAMPLES_PER_CLASS * 3
@@ -360,21 +393,24 @@ class TestSyntheticDataGenerator:
 
     def test_no_nan(self):
         from ml_model.data_generator import SyntheticDataGenerator
+
         gen = SyntheticDataGenerator(random_state=1)
         X, _ = gen.generate()
         assert np.all(np.isfinite(X))
 
     def test_labels_balanced(self):
-        from ml_model.data_generator import SyntheticDataGenerator, SAMPLES_PER_CLASS
+        from ml_model.data_generator import SAMPLES_PER_CLASS, SyntheticDataGenerator
+
         gen = SyntheticDataGenerator()
         _, y = gen.generate()
         counts = np.bincount(y)
         assert all(c == SAMPLES_PER_CLASS for c in counts)
 
     def test_senior_higher_quality_than_junior(self):
-        from ml_model.data_generator import SyntheticDataGenerator
-        from analysis.feature_engineering import FeatureVector
         from dataclasses import fields as dc_fields
+
+        from analysis.feature_engineering import FeatureVector
+        from ml_model.data_generator import SyntheticDataGenerator
 
         gen = SyntheticDataGenerator(random_state=42)
         fn = [f.name for f in dc_fields(FeatureVector)]
@@ -389,10 +425,11 @@ class TestSyntheticDataGenerator:
 #  ModelTrainer + Classifier Tests
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class TestModelTrainer:
     def test_train_and_predict(self, tmp_path, config):
-        from ml_model.trainer import ModelTrainer
         from ml_model.data_generator import SyntheticDataGenerator
+        from ml_model.trainer import ModelTrainer
 
         cfg = Config(
             model_path=str(tmp_path / "model.pkl"),
@@ -410,9 +447,10 @@ class TestModelTrainer:
         assert all(p in [0, 1, 2] for p in preds)
 
     def test_cross_val_above_chance(self, tmp_path):
-        from ml_model.trainer import ModelTrainer
-        from ml_model.data_generator import SyntheticDataGenerator
         from sklearn.model_selection import cross_val_score
+
+        from ml_model.data_generator import SyntheticDataGenerator
+        from ml_model.trainer import ModelTrainer
 
         cfg = Config(model_path=str(tmp_path / "m.pkl"), model_n_estimators=30)
         trainer = ModelTrainer(cfg)
@@ -426,26 +464,47 @@ class TestModelTrainer:
 
 
 class TestClassifier:
-    def test_predict_returns_valid_label(self, tmp_path, config,
-                                          source_file, code_metrics, pattern_report):
-        from analysis.feature_engineering import FeatureEngineer, FeatureVector
+    def test_predict_returns_valid_label(self, tmp_path, config, source_file, code_metrics, pattern_report):
+        from analysis.feature_engineering import FeatureEngineer
+        from data_collection.github_client import RepositoryData
         from ml_model.classifier import RepositoryClassifier
         from ml_model.data_generator import LABEL_MAP
-        from data_collection.github_client import RepositoryData
 
         cfg = Config(model_path=str(tmp_path / "clf.pkl"), model_n_estimators=20)
 
         repo = RepositoryData(
-            owner="u", name="r", full_name="u/r", description=None,
-            url="https://github.com/u/r", stars=50, forks=5, watchers=50,
-            open_issues=2, default_branch="main",
-            created_at="2023-01-01T00:00:00Z", updated_at="2024-01-01T00:00:00Z",
-            pushed_at="2024-01-01T00:00:00Z", size_kb=300, language="Python",
-            languages={"Python": 5000}, topics=[], has_wiki=False, has_issues=True,
-            has_projects=False, license_name=None, contributors_count=1,
-            commits_count=30, branches_count=2, releases_count=0,
-            commit_history=[], tree_entries=[], readme_content="# Test",
-            has_ci=False, has_tests=False, has_docker=False, has_requirements=True,
+            owner="u",
+            name="r",
+            full_name="u/r",
+            description=None,
+            url="https://github.com/u/r",
+            stars=50,
+            forks=5,
+            watchers=50,
+            open_issues=2,
+            default_branch="main",
+            created_at="2023-01-01T00:00:00Z",
+            updated_at="2024-01-01T00:00:00Z",
+            pushed_at="2024-01-01T00:00:00Z",
+            size_kb=300,
+            language="Python",
+            languages={"Python": 5000},
+            topics=[],
+            has_wiki=False,
+            has_issues=True,
+            has_projects=False,
+            license_name=None,
+            contributors_count=1,
+            commits_count=30,
+            branches_count=2,
+            releases_count=0,
+            commit_history=[],
+            tree_entries=[],
+            readme_content="# Test",
+            has_ci=False,
+            has_tests=False,
+            has_docker=False,
+            has_requirements=True,
         )
 
         fv = FeatureEngineer(cfg).build(repo, [source_file], code_metrics, pattern_report)
@@ -462,15 +521,19 @@ class TestClassifier:
 #  LLMAnalyzer Mock Tests
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class TestLLMAnalyzerMock:
     def test_mock_returns_insights(self, config, source_file, code_metrics, pattern_report):
-        from ml_model.classifier import ClassificationResult
         from llm.llm_analyzer import LLMAnalyzer
+        from ml_model.classifier import ClassificationResult
 
         clf_result = ClassificationResult(
-            level="Mid-level", level_index=1, confidence=0.72,
+            level="Mid-level",
+            level_index=1,
+            confidence=0.72,
             probabilities={"Junior": 0.1, "Mid-level": 0.72, "Senior": 0.18},
-            composite_score=62.0, feature_importances={},
+            composite_score=62.0,
+            feature_importances={},
         )
         analyzer = LLMAnalyzer(config)
         insights = analyzer._mock_response(code_metrics, pattern_report, clf_result)
@@ -482,8 +545,9 @@ class TestLLMAnalyzerMock:
         assert insights.error is None
 
     def test_parse_valid_json(self, config):
-        from llm.llm_analyzer import LLMAnalyzer
         import json
+
+        from llm.llm_analyzer import LLMAnalyzer
 
         payload = {
             "summary": "Good project.",
@@ -500,6 +564,7 @@ class TestLLMAnalyzerMock:
 
     def test_parse_malformed_json_returns_error(self, config):
         from llm.llm_analyzer import LLMAnalyzer
+
         insights = LLMAnalyzer(config)._parse_response("not json at all !!!", "openai")
         assert insights.error is not None
 
@@ -508,72 +573,139 @@ class TestLLMAnalyzerMock:
 #  ReportBuilder Tests
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class TestReportBuilder:
     def test_report_has_required_keys(self, config, source_file, code_metrics, pattern_report):
         from analysis.feature_engineering import FeatureEngineer
+        from data_collection.github_client import RepositoryData
         from ml_model.classifier import ClassificationResult
         from reporting.report_builder import ReportBuilder
-        from data_collection.github_client import RepositoryData
 
         repo = RepositoryData(
-            owner="u", name="r", full_name="u/r", description="Test",
-            url="https://github.com/u/r", stars=10, forks=2, watchers=10,
-            open_issues=1, default_branch="main",
-            created_at="2023-06-01T00:00:00Z", updated_at="2024-01-01T00:00:00Z",
-            pushed_at="2024-01-01T00:00:00Z", size_kb=100, language="Python",
-            languages={"Python": 3000}, topics=["test"], has_wiki=False,
-            has_issues=True, has_projects=False, license_name="MIT",
-            contributors_count=1, commits_count=20, branches_count=1,
-            releases_count=0, commit_history=[], tree_entries=[],
-            readme_content="# Hi", has_ci=False, has_tests=False,
-            has_docker=False, has_requirements=True,
+            owner="u",
+            name="r",
+            full_name="u/r",
+            description="Test",
+            url="https://github.com/u/r",
+            stars=10,
+            forks=2,
+            watchers=10,
+            open_issues=1,
+            default_branch="main",
+            created_at="2023-06-01T00:00:00Z",
+            updated_at="2024-01-01T00:00:00Z",
+            pushed_at="2024-01-01T00:00:00Z",
+            size_kb=100,
+            language="Python",
+            languages={"Python": 3000},
+            topics=["test"],
+            has_wiki=False,
+            has_issues=True,
+            has_projects=False,
+            license_name="MIT",
+            contributors_count=1,
+            commits_count=20,
+            branches_count=1,
+            releases_count=0,
+            commit_history=[],
+            tree_entries=[],
+            readme_content="# Hi",
+            has_ci=False,
+            has_tests=False,
+            has_docker=False,
+            has_requirements=True,
         )
         fv = FeatureEngineer(config).build(repo, [source_file], code_metrics, pattern_report)
         clf = ClassificationResult(
-            level="Mid-level", level_index=1, confidence=0.65,
+            level="Mid-level",
+            level_index=1,
+            confidence=0.65,
             probabilities={"Junior": 0.2, "Mid-level": 0.65, "Senior": 0.15},
-            composite_score=58.0, feature_importances={},
+            composite_score=58.0,
+            feature_importances={},
         )
         report = ReportBuilder(config).build(
-            repo_data=repo, source_files=[source_file],
-            code_metrics=code_metrics, patterns=pattern_report,
-            feature_vector=fv, classification=clf, llm_insights={},
+            repo_data=repo,
+            source_files=[source_file],
+            code_metrics=code_metrics,
+            patterns=pattern_report,
+            feature_vector=fv,
+            classification=clf,
+            llm_insights={},
         )
 
-        for key in ("nivel", "calidad", "score", "buenas_practicas", "mejoras",
-                    "repositorio", "clasificacion", "metricas_codigo",
-                    "patrones_diseno", "code_smells", "recomendaciones"):
+        for key in (
+            "nivel",
+            "calidad",
+            "score",
+            "buenas_practicas",
+            "mejoras",
+            "repositorio",
+            "clasificacion",
+            "metricas_codigo",
+            "patrones_diseno",
+            "code_smells",
+            "recomendaciones",
+        ):
             assert key in report, f"Missing key: {key}"
 
     def test_score_within_range(self, config, source_file, code_metrics, pattern_report):
         from analysis.feature_engineering import FeatureEngineer
+        from data_collection.github_client import RepositoryData
         from ml_model.classifier import ClassificationResult
         from reporting.report_builder import ReportBuilder
-        from data_collection.github_client import RepositoryData
 
         repo = RepositoryData(
-            owner="u", name="r", full_name="u/r", description=None,
-            url="https://github.com/u/r", stars=5, forks=0, watchers=5,
-            open_issues=0, default_branch="main",
-            created_at="2024-01-01T00:00:00Z", updated_at="2024-06-01T00:00:00Z",
-            pushed_at="2024-06-01T00:00:00Z", size_kb=50, language="Python",
-            languages={"Python": 1500}, topics=[], has_wiki=False,
-            has_issues=False, has_projects=False, license_name=None,
-            contributors_count=1, commits_count=5, branches_count=1,
-            releases_count=0, commit_history=[], tree_entries=[],
-            readme_content=None, has_ci=False, has_tests=False,
-            has_docker=False, has_requirements=False,
+            owner="u",
+            name="r",
+            full_name="u/r",
+            description=None,
+            url="https://github.com/u/r",
+            stars=5,
+            forks=0,
+            watchers=5,
+            open_issues=0,
+            default_branch="main",
+            created_at="2024-01-01T00:00:00Z",
+            updated_at="2024-06-01T00:00:00Z",
+            pushed_at="2024-06-01T00:00:00Z",
+            size_kb=50,
+            language="Python",
+            languages={"Python": 1500},
+            topics=[],
+            has_wiki=False,
+            has_issues=False,
+            has_projects=False,
+            license_name=None,
+            contributors_count=1,
+            commits_count=5,
+            branches_count=1,
+            releases_count=0,
+            commit_history=[],
+            tree_entries=[],
+            readme_content=None,
+            has_ci=False,
+            has_tests=False,
+            has_docker=False,
+            has_requirements=False,
         )
         fv = FeatureEngineer(config).build(repo, [source_file], code_metrics, pattern_report)
         clf = ClassificationResult(
-            level="Junior", level_index=0, confidence=0.80,
+            level="Junior",
+            level_index=0,
+            confidence=0.80,
             probabilities={"Junior": 0.80, "Mid-level": 0.15, "Senior": 0.05},
-            composite_score=28.0, feature_importances={},
+            composite_score=28.0,
+            feature_importances={},
         )
         report = ReportBuilder(config).build(
-            repo_data=repo, source_files=[source_file],
-            code_metrics=code_metrics, patterns=pattern_report,
-            feature_vector=fv, classification=clf, llm_insights={},
+            repo_data=repo,
+            source_files=[source_file],
+            code_metrics=code_metrics,
+            patterns=pattern_report,
+            feature_vector=fv,
+            classification=clf,
+            llm_insights={},
         )
         assert 0 <= report["score"] <= 100
 

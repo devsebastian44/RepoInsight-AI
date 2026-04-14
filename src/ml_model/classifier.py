@@ -11,14 +11,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-import numpy as np
-
-from config import Config
 from analysis.feature_engineering import FeatureVector
+from config import Config
 from ml_model.data_generator import LABEL_MAP
 
-
 # ── Result Model ──────────────────────────────────────────────────────────────
+
 
 @dataclass
 class ClassificationResult:
@@ -32,6 +30,7 @@ class ClassificationResult:
         probabilities  : Probability per class {Junior, Mid-level, Senior}
         composite_score: Blended score 0–100 combining ML + quality metrics
     """
+
     level: str
     level_index: int
     confidence: float
@@ -41,6 +40,7 @@ class ClassificationResult:
 
 
 # ── Classifier ────────────────────────────────────────────────────────────────
+
 
 class RepositoryClassifier:
     """
@@ -63,10 +63,10 @@ class RepositoryClassifier:
         pipeline = self._load_or_train()
         X = features.to_numpy().reshape(1, -1)
 
-        pred_idx   = int(pipeline.predict(X)[0])
+        pred_idx = int(pipeline.predict(X)[0])
         pred_proba = pipeline.predict_proba(X)[0]
 
-        label      = LABEL_MAP[pred_idx]
+        label = LABEL_MAP[pred_idx]
         confidence = float(pred_proba[pred_idx])
         proba_dict = {LABEL_MAP[i]: round(float(p), 3) for i, p in enumerate(pred_proba)}
 
@@ -75,12 +75,15 @@ class RepositoryClassifier:
         # Feature importances from RF
         rf = pipeline.named_steps["clf"]
         from dataclasses import fields as dc_fields
+
         fn = [f.name for f in dc_fields(FeatureVector)]
-        importances = dict(sorted(
-            zip(fn, rf.feature_importances_),
-            key=lambda x: x[1],
-            reverse=True,
-        ))
+        importances = dict(
+            sorted(
+                zip(fn, rf.feature_importances_),
+                key=lambda x: x[1],
+                reverse=True,
+            )
+        )
         top_importances = dict(list(importances.items())[:10])
 
         return ClassificationResult(
@@ -100,6 +103,7 @@ class RepositoryClassifier:
             return self._pipeline
 
         from ml_model.trainer import ModelTrainer
+
         trainer = ModelTrainer(self.config)
 
         if trainer.model_exists():
@@ -132,25 +136,12 @@ class RepositoryClassifier:
         quality = fv.quality_score
 
         # Practice component
-        practice = min(100.0, (
-            fv.has_ci * 20 +
-            fv.has_tests * 25 +
-            fv.has_docker * 10 +
-            fv.has_requirements * 10 +
-            (fv.best_practice_count / 12) * 35
-        ))
+        practice = min(
+            100.0, (fv.has_ci * 20 + fv.has_tests * 25 + fv.has_docker * 10 + fv.has_requirements * 10 + (fv.best_practice_count / 12) * 35)
+        )
 
         # Activity component
-        activity = min(100.0, (
-            min(fv.commits_log / 8.0, 1.0) * 40 +
-            min(fv.commit_frequency * 2, 1.0) * 30 +
-            fv.commit_message_quality * 30
-        ))
+        activity = min(100.0, (min(fv.commits_log / 8.0, 1.0) * 40 + min(fv.commit_frequency * 2, 1.0) * 30 + fv.commit_message_quality * 30))
 
-        composite = (
-            ml_score * 0.40 +
-            quality  * 0.35 +
-            practice * 0.15 +
-            activity * 0.10
-        )
+        composite = ml_score * 0.40 + quality * 0.35 + practice * 0.15 + activity * 0.10
         return round(min(100.0, max(0.0, composite)), 1)

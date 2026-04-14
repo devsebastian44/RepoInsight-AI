@@ -13,12 +13,12 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
+from analysis.code_analyzer import CodeMetrics
+from analysis.feature_engineering import FeatureVector
+from analysis.pattern_detector import PatternReport
 from config import Config
 from data_collection.code_extractor import SourceFile
 from data_collection.github_client import RepositoryData
-from analysis.code_analyzer import CodeMetrics
-from analysis.pattern_detector import PatternReport
-from analysis.feature_engineering import FeatureVector
 from ml_model.classifier import ClassificationResult
 
 
@@ -68,10 +68,7 @@ class ReportBuilder:
         recommendations = self._build_recommendations(code_metrics, patterns, classification)
 
         # ── Build best practices list ──────────────────────────────────────────
-        buenas_practicas = [
-            {"nombre": p.name, "descripcion": p.description, "archivos": p.files}
-            for p in patterns.best_practices
-        ]
+        buenas_practicas = [{"nombre": p.name, "descripcion": p.description, "archivos": p.files} for p in patterns.best_practices]
 
         # ── Build smells list ──────────────────────────────────────────────────
         code_smells = [
@@ -98,8 +95,7 @@ class ReportBuilder:
         # ── Language breakdown ────────────────────────────────────────────────
         total_bytes = sum(repo_data.languages.values()) or 1
         language_pct = {
-            lang: round(bytes_ / total_bytes * 100, 1)
-            for lang, bytes_ in sorted(repo_data.languages.items(), key=lambda x: x[1], reverse=True)
+            lang: round(bytes_ / total_bytes * 100, 1) for lang, bytes_ in sorted(repo_data.languages.items(), key=lambda x: x[1], reverse=True)
         }
 
         report = {
@@ -109,7 +105,6 @@ class ReportBuilder:
             "score": classification.composite_score,
             "buenas_practicas": [p.name for p in patterns.best_practices],
             "mejoras": recommendations["quick_wins"],
-
             # ── Metadata ─────────────────────────────────────────────────────
             "meta": {
                 "herramienta": self.config.tool_name,
@@ -117,7 +112,6 @@ class ReportBuilder:
                 "timestamp": datetime.now(timezone.utc).isoformat(),
                 "repositorio_analizado": repo_data.url,
             },
-
             # ── Repository ────────────────────────────────────────────────────
             "repositorio": {
                 "nombre": repo_data.full_name,
@@ -141,18 +135,14 @@ class ReportBuilder:
                 "tiene_readme": repo_data.readme_content is not None,
                 "tiene_licencia": repo_data.license_name is not None,
             },
-
             # ── Classification ────────────────────────────────────────────────
             "clasificacion": {
                 "nivel": classification.level,
                 "confianza": classification.confidence,
                 "probabilidades": classification.probabilities,
                 "score_compuesto": classification.composite_score,
-                "top_features": dict(
-                    list(classification.feature_importances.items())[:5]
-                ),
+                "top_features": dict(list(classification.feature_importances.items())[:5]),
             },
-
             # ── Code Metrics ──────────────────────────────────────────────────
             "metricas_codigo": {
                 "archivos_analizados": code_metrics.total_files,
@@ -174,19 +164,14 @@ class ReportBuilder:
                 "numeros_magicos": code_metrics.magic_number_count,
                 "score_calidad": code_metrics.quality_score,
             },
-
             # ── Patterns ──────────────────────────────────────────────────────
             "patrones_diseno": design_patterns,
-
             # ── Practices ─────────────────────────────────────────────────────
             "buenas_practicas_detalle": buenas_practicas,
-
             # ── Smells ────────────────────────────────────────────────────────
             "code_smells": code_smells,
-
             # ── LLM Insights ──────────────────────────────────────────────────
             "analisis_llm": self._serialize_llm(llm_insights),
-
             # ── Recommendations ───────────────────────────────────────────────
             "recomendaciones": recommendations,
         }
@@ -202,9 +187,9 @@ class ReportBuilder:
         classification: ClassificationResult,
     ) -> dict[str, list[str]]:
         """Generate tiered, actionable recommendations."""
-        quick_wins: list[str]        = []
-        medium_term: list[str]       = []
-        architectural: list[str]     = []
+        quick_wins: list[str] = []
+        medium_term: list[str] = []
+        architectural: list[str] = []
 
         level = classification.level
 
@@ -262,6 +247,7 @@ class ReportBuilder:
             return {"disponible": False}
 
         from llm.llm_analyzer import LLMInsights
+
         if isinstance(llm_insights, LLMInsights):
             return {
                 "disponible": True,
