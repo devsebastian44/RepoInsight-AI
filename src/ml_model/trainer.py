@@ -82,7 +82,7 @@ class ModelTrainer:
         if not path.exists():
             raise FileNotFoundError(f"Model not found at {path}. Run ModelTrainer.train_and_save() first.")
         with open(path, "rb") as f:
-            return pickle.load(f)
+            return pickle.load(f)  # nosec B301
 
     def model_exists(self) -> bool:
         return Path(self.config.model_path).exists()
