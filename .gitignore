@@ -12,13 +12,16 @@ venv/
 .venv/
 env/
 
-# Model artifacts (auto-generated)
-assets/*.pkl
+# Data and Models
+data/*.pkl
+data/*.csv
+data/*.json
 
-# Environment
+# Environment Configs
 .env
 .env.local
-.env.example
+configs/.env*
+!configs/.env.example
 
 # IDE
 .vscode/
@@ -30,11 +33,12 @@ assets/*.pkl
 .coverage
 htmlcov/
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Reports
+# Logs & Reports
 reports/
 *.json
 !tests/fixtures/*.json
+*.log
+
+# OS
+.DS_Store
+Thumbs.db

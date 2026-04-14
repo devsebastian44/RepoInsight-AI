@@ -1,0 +1,36 @@
+stages:
+  - lint
+  - test
+  - security
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.pip-cache"
+
+cache:
+  paths:
+    - .pip-cache/
+    - .venv/
+
+before_script:
+  - python -V
+  - pip install virtualenv
+  - virtualenv .venv
+  - source .venv/bin/activate
+  - pip install -r requirements.txt
+  - pip install ruff bandit pytest pytest-cov
+
+lint:
+  stage: lint
+  script:
+    - ruff check src/ tests/
+    - ruff format --check src/ tests/
+
+test:
+  stage: test
+  script:
+    - PYTHONPATH=src pytest tests/ -v --cov=src --cov-report=term
+    
+security:
+  stage: security
+  script:
+    - bandit -r src/ -ll -ii

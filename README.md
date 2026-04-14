@@ -98,36 +98,32 @@ Código Duplicado, Except Vacío
 ```
 RepoInsight-AI/
 │
-├── main.py                      ← Punto de entrada CLI y orquestador de pipeline
-├── config.py                    ← Configuración centralizada (variables de entorno + defaults)
-├── train_model.py               ← Script de pre-entrenamiento de modelo independiente
+├── src/                         ← Código fuente principal
+│   ├── main.py                  ← Punto de entrada CLI y orquestador
+│   ├── config.py                ← Configuración centralizada
+│   ├── train_model.py           ← Entrenamiento de modelo ML
+│   ├── data_collection/         ← Capa 1: Adquisición de Datos
+│   ├── analysis/                ← Capa 2: Análisis Estático
+│   ├── ml_model/                ← Capa 3: Machine Learning (Privado)
+│   ├── llm/                     ← Capa 4: Análisis LLM (Privado)
+│   └── reporting/               ← Capa 5: Generación de reportes
 │
-├── data_collection/             ← CAPA 1: Adquisición de Datos
-│   ├── github_client.py         │   Cliente GitHub REST API v3
-│   └── code_extractor.py        │   Descargador y parser de archivos fuente
+├── scripts/
+│   └── publish_public.ps1       ← Sanitización automatizada GitLab -> GitHub
 │
-├── analysis/                    ← CAPA 2: Análisis Estático
-│   ├── code_analyzer.py         │   Complejidad ciclomática, nomenclatura, duplicación
-│   ├── pattern_detector.py      │   Patrones de diseño, smells, mejores prácticas
-│   └── feature_engineering.py   │   Construcción de vector de características numérico
-│
-├── ml_model/                    ← CAPA 3: Machine Learning
-│   ├── data_generator.py        │   Datos de entrenamiento sintéticos etiquetados
-│   ├── trainer.py               │   Entrenador de pipeline RandomForest
-│   └── classifier.py            │   Predicción + puntuación compuesta
-│
-├── llm/                         ← CAPA 4: Análisis LLM (opcional)
-│   └── llm_analyzer.py          │   OpenAI / Anthropic / Mock provider
-│
-├── reporting/                   ← CAPA 5: Salida
-│   ├── report_builder.py        │   Ensambla diccionario de reporte final
-│   └── formatter.py             │   Renderizado terminal colorido + JSON
-│
-├── tests/
-│   └── test_suite.py            ← Pruebas unitarias comprensivas
-│
-└── assets/
-    └── rf_classifier.pkl        ← Modelo entrenado auto-generado
+├── tests/                       ← Suite de pruebas unitarias y de integración
+├── configs/                     ← Plantillas y configuración (ej. .env.example)
+├── data/                        ← Modelos entrenados e insumos (ej. bbdd/pkl)
+├── docs/                        ← Documentación del proyecto
+└── diagrams/                    ← Diagramas arquitectónicos y modelado
+
+### DevSecOps Workflow (Privado vs Público)
+
+Este proyecto emplea un modelo de seguridad por diseño, dividiendo el trabajo en dos entornos estrictos:
+- **GitLab (Laboratorio Privado)**: Fuente de verdad centralizada. Contiene código crítico (pipelines de CI/CD, tests integrales, módulos internos `llm/` y `ml_model/`).
+- **GitHub (Portafolio Público)**: Versión de solo lectura sanitizada. 
+
+El script `scripts/publish_public.ps1` se ejecuta tras completar validaciones continuas (CI) para empaquetar una **versión sanitizada** desprovista de automatizaciones privadas hacia el portafolio público de demostración.
 ```
 
 ### Flujo de datos
@@ -199,7 +195,7 @@ export ANTHROPIC_API_KEY=sk-ant-...          # Para análisis Claude
 ### 5. Pre-entrenar el modelo (opcional — auto-entrena en primer uso)
 
 ```bash
-python train_model.py --show-importances
+python src/train_model.py --show-importances
 ```
 
 ---
@@ -209,19 +205,19 @@ python train_model.py --show-importances
 ### Análisis básico
 
 ```bash
-python main.py https://github.com/tiangolo/fastapi
+python src/main.py https://github.com/tiangolo/fastapi
 ```
 
 ### Guardar reporte en JSON
 
 ```bash
-python main.py https://github.com/psf/requests --output json --save report.json
+python src/main.py https://github.com/psf/requests --output json --save report.json
 ```
 
 ### Con análisis profundo LLM (OpenAI)
 
 ```bash
-python main.py https://github.com/pallets/flask \
+python src/main.py https://github.com/pallets/flask \
   --llm \
   --llm-provider openai \
   --output both
@@ -230,7 +226,7 @@ python main.py https://github.com/pallets/flask \
 ### Con Anthropic Claude
 
 ```bash
-python main.py https://github.com/encode/httpx \
+python src/main.py https://github.com/encode/httpx \
   --llm \
   --llm-provider anthropic
 ```
@@ -262,14 +258,14 @@ options:
 ### API Python (uso programático)
 
 ```python
-from config import Config
-from data_collection.github_client import GitHubClient
-from data_collection.code_extractor import CodeExtractor
-from analysis.code_analyzer import CodeAnalyzer
-from analysis.pattern_detector import PatternDetector
-from analysis.feature_engineering import FeatureEngineer
-from ml_model.classifier import RepositoryClassifier
-from reporting.report_builder import ReportBuilder
+from src.config import Config
+from src.data_collection.github_client import GitHubClient
+from src.data_collection.code_extractor import CodeExtractor
+from src.analysis.code_analyzer import CodeAnalyzer
+from src.analysis.pattern_detector import PatternDetector
+from src.analysis.feature_engineering import FeatureEngineer
+from src.ml_model.classifier import RepositoryClassifier
+from src.reporting.report_builder import ReportBuilder
 
 config = Config(github_token="ghp_your_token")
 
