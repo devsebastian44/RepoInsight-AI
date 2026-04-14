@@ -65,8 +65,8 @@ class Config:
     # ── ML Model ──────────────────────────────────────────────────────────────
     model_random_state: int = 42
     model_n_estimators: int = 200
-    model_path: str = "assets/rf_classifier.pkl"
-    scaler_path: str = "assets/feature_scaler.pkl"
+    model_path: str = "data/rf_classifier.pkl"
+    scaler_path: str = "data/feature_scaler.pkl"
 
     # ── LLM ──────────────────────────────────────────────────────────────────
     llm_provider: str = "mock"  # openai | anthropic | mock
