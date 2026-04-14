@@ -41,6 +41,7 @@ git rm -r --cached data/ -f 2>$null
 git rm --cached .gitlab-ci.yml -f 2>$null
 git rm -r --cached src/llm/ -f 2>$null
 git rm -r --cached src/ml_model/ -f 2>$null
+git rm -r --cached .github/ -f 2>$null
 
 # 6. Commit de Lanzamiento y Push a GitHub
 git commit -m "docs: release update to public portfolio (sanitized)" --allow-empty
