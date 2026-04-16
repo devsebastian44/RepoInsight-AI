@@ -15,24 +15,21 @@ cache:
 
 before_script:
   - python -V
-  - pip install virtualenv
-  - virtualenv .venv
-  - source .venv/bin/activate
-  - pip install -r requirements.txt
-  - pip install ruff bandit pytest pytest-cov
+  - pip install --upgrade pip
+  - pip install -e .[dev]
 
-lint:
+lint:ruff:
   stage: lint
   script:
-    - ruff check src/ tests/
-    - ruff format --check src/ tests/
+    - ruff check .
+    - ruff format --check .
 
-test:
+test:pytest:
   stage: test
   script:
-    - PYTHONPATH=src pytest tests/ -v --cov=src --cov-report=term
-    
-security:
+    - pytest tests/
+
+security:audit:
   stage: security
   script:
-    - bandit -r src/ -ll -ii
+    - pip-audit --desc on
