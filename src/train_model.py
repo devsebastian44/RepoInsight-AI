@@ -17,8 +17,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
-from config import Config
-from ml_model.trainer import ModelTrainer
+from config import Config  # noqa: E402
+from ml_model.trainer import ModelTrainer  # noqa: E402
 
 
 def main() -> None:
