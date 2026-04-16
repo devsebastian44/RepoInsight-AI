@@ -229,6 +229,6 @@ def _repo_age_days_approx(self) -> float:
 
 
 # Monkey-patch property onto RepositoryData
-from data_collection.github_client import RepositoryData as _RD
+from data_collection.github_client import RepositoryData as _RD  # noqa: E402
 
 _RD.repo_age_days_approx = property(_repo_age_days_approx)

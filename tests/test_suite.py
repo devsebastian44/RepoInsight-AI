@@ -18,7 +18,7 @@ import pytest
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(project_root, "src"))
 
-from config import Config
+from config import Config  # noqa: E402
 
 # ─────────────────────────────────────────────────────────────────────────────
 #  Fixtures
