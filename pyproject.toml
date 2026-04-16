@@ -38,6 +38,7 @@ dev = [
     "ruff>=0.4.0",
     "black>=24.0.0",
     "pip-audit>=2.7.0",
+    "wheel>=0.46.2",
     "python-dotenv>=1.2.1",
 ]
 
