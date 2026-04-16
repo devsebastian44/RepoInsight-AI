@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
 
     steps:
     - uses: actions/checkout@v4
@@ -37,7 +37,6 @@ jobs:
         
     - name: Security scan with pip-audit
       run: |
-        pip install pip-audit
         pip-audit --desc on
 
     - name: Test with pytest
