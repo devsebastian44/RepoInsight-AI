@@ -88,7 +88,6 @@ class GitHubClient:
         ".circleci",
         "Jenkinsfile",
         "azure-pipelines.yml",
-        ".gitlab-ci.yml",
         "bitbucket-pipelines.yml",
         "Makefile",
     }
