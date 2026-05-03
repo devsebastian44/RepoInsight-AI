@@ -185,11 +185,7 @@ class CodeAnalyzer:
         magic_nums = [m for m in self._MAGIC_NUM.findall(content) if m not in common_nums]
 
         # Nesting depth score: count lines with deep indentation (>= 4 levels)
-        deep_lines = sum(
-            1
-            for l in sf.content.splitlines()
-            if len(l) - len(l.lstrip()) >= 16  # 4 × 4-space indent
-        )
+        deep_lines = sum(1 for l in sf.content.splitlines() if len(l) - len(l.lstrip()) >= 16)  # 4 × 4-space indent
         nested_score = min(10.0, deep_lines / max(len(lines), 1) * 100)
 
         # Naming score
