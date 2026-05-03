@@ -4,7 +4,7 @@
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-1.4%2B-F7931E?style=flat&logo=scikitlearn)
 ![LLM](https://img.shields.io/badge/LLM-OpenAI_%7C_Anthropic-412991?style=flat&logo=openai)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat&logo=opensourceinitiative)
-![Ruff](https://img.shields.io/badge/Linter-Ruff_%2B_Black-orange?style=flat&logo=python)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI%2FCD-2088FF?style=flat&logo=github-actions&logoColor=white)
 ![GitHub API](https://img.shields.io/badge/GitHub_API-REST_v3-181717?style=flat&logo=github)
 
 ---
@@ -245,10 +245,10 @@ RepoInsight-AI/
 │   │   ├── pattern_detector.py       # 12 patrones, 12 buenas prácticas, 10 code smells
 │   │   └── feature_engineering.py   # Construcción del vector de 47 características (numpy)
 │   │
-│   ├── ml_model/                     # Capa 3 — Motor ML (parcialmente privado en GitLab)
+│   ├── ml_model/                     # Capa 3 — Motor ML
 │   │   └── classifier.py             # RandomForestClassifier: predict(), auto-train, score
 │   │
-│   ├── llm/                          # Capa 4 — Análisis LLM (privado en GitLab)
+│   ├── llm/                          # Capa 4 — Análisis LLM
 │   │   └── llm_analyzer.py          # Adaptador OpenAI / Anthropic con prompts JSON
 │   │
 │   └── reporting/                    # Capa 5 — Generación de reportes
@@ -264,8 +264,6 @@ RepoInsight-AI/
 ├── docs/                             # Documentación técnica del proyecto
 ├── diagrams/                         # Diagramas de arquitectura C4 / flujo de datos
 │
-├── scripts/
-│   └── publish_public.ps1            # Sanitización automatizada GitLab → GitHub
 │
 ├── .pre-commit-config.yaml           # Hooks: black, ruff, trailing-whitespace, check-yaml
 ├── pyproject.toml                    # Metadatos, dependencias, ruff, black, pytest
@@ -284,35 +282,29 @@ RepoInsight-AI/
 - **Sin persistencia de datos de terceros**: únicamente se serializa el modelo `.pkl`
   propio en `data/`; los archivos fuente descargados se procesan en memoria sin escritura
   en disco.
-- **Arquitectura de repositorios segregada**: los módulos `ml_model/` y `llm/` con su
-  implementación completa, datasets de entrenamiento, pipelines CI/CD y configuraciones
-  sensibles residen exclusivamente en el repositorio privado de GitLab. GitHub expone
-  únicamente el código core sanitizado.
 - **Pre-commit hooks de seguridad**: `check-added-large-files` previene commits
   accidentales de archivos pesados (modelos, datasets); `check-yaml` valida la integridad
   de la configuración antes de cada commit.
 - **Dependencias auditadas**: el extras group `dev` incluye `python-dotenv` para gestión
-  segura de variables de entorno; en GitLab se ejecutan auditorías de dependencias (SCA)
-  en el pipeline CI/CD.
+  segura de variables de entorno.
 
 ---
 
-## 🌐 Repository Architecture
+## 🤝 Contributing
 
-Este proyecto sigue una arquitectura distribuida de repositorios con separación estricta
-de entornos por diseño:
+This project is open for collaboration. To contribute:
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes using Conventional Commits (`git commit -m 'feat: add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-- **GitLab** — Laboratorio de datos e IA (fuente de verdad): contiene la implementación
-  completa de `ml_model/` y `llm/`, datasets de entrenamiento reales, pipelines CI/CD,
-  notebooks de experimentación, benchmarks y configuraciones de infraestructura.
-- **GitHub** — Portafolio público sanitizado: expone el código core del pipeline, la
-  arquitectura del sistema, documentación técnica y diagramas. El script
-  `scripts/publish_public.ps1` automatiza la sanitización y sincronización entre entornos.
+---
 
-### 🔗 Full Source Code
+## ⚠️ Disclaimer
 
-👉 Código completo disponible en GitLab:
-[https://gitlab.com/group-data-ia-lab/RepoInsight-AI](https://gitlab.com/group-data-ia-lab/RepoInsight-AI)
+> [!WARNING]
+> This project is for educational and ethical cybersecurity purposes only.
 
 ---
 
